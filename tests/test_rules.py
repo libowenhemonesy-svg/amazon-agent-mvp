@@ -205,3 +205,77 @@ def test_evaluate_alert_rules_detects_profit_and_quality_alerts():
     )
 
     assert {alert["alert_type"] for alert in alerts} == {"profit_below_target", "quality_risk"}
+
+
+def test_evaluate_alert_rules_detects_ad_spend_increasing_without_orders_growth():
+    alerts = evaluate_alert_rules(
+        [
+            {
+                "sku": "SKU-ADS",
+                "units_sold": 10,
+                "avg_units_7d": 10,
+                "three_day_sales_decline": False,
+                "acos": 0.35,
+                "target_acos": 0.3,
+                "clicks": 12,
+                "ad_orders": 1,
+                "inventory_days": 60,
+                "safety_stock_days": 30,
+                "replenishment_days": 20,
+                "ads_trend_7d": [
+                    {"date": "2026-01-01", "spend": 10, "orders": 2, "acos": 0.25},
+                    {"date": "2026-01-02", "spend": 12, "orders": 3, "acos": 0.27},
+                    {"date": "2026-01-03", "spend": 14, "orders": 2, "acos": 0.3},
+                    {"date": "2026-01-04", "spend": 16, "orders": 2, "acos": 0.32},
+                    {"date": "2026-01-05", "spend": 30, "orders": 2, "acos": 0.35},
+                    {"date": "2026-01-06", "spend": 45, "orders": 2, "acos": 0.42},
+                    {"date": "2026-01-07", "spend": 72, "orders": 1, "acos": 0.55},
+                ],
+            }
+        ]
+    )
+
+    trend_alert = next(
+        alert for alert in alerts if alert["alert_type"] == "ad_spend_increasing_without_orders_growth"
+    )
+    assert trend_alert["severity"] == "medium"
+    assert trend_alert["reason"] == "近 3 日广告花费持续增加，但广告订单未同步增长"
+    assert trend_alert["rule_context"]["observed"] == {
+        "spend": [30, 45, 72],
+        "orders": [2, 2, 1],
+    }
+    assert trend_alert["rule_context"]["baseline"] == {
+        "spend": 30,
+        "orders": 2,
+    }
+    assert trend_alert["rule_context"]["threshold"] == "spend strictly increasing and orders not increasing"
+    assert trend_alert["rule_context"]["unit"] == "mixed"
+
+
+def test_evaluate_alert_rules_does_not_emit_ad_trend_alert_when_orders_grow_with_spend():
+    alerts = evaluate_alert_rules(
+        [
+            {
+                "sku": "SKU-ADS-OK",
+                "units_sold": 10,
+                "avg_units_7d": 10,
+                "three_day_sales_decline": False,
+                "acos": 0.25,
+                "target_acos": 0.3,
+                "clicks": 12,
+                "ad_orders": 4,
+                "inventory_days": 60,
+                "safety_stock_days": 30,
+                "replenishment_days": 20,
+                "ads_trend_7d": [
+                    {"date": "2026-01-05", "spend": 30, "orders": 1, "acos": 0.35},
+                    {"date": "2026-01-06", "spend": 45, "orders": 2, "acos": 0.32},
+                    {"date": "2026-01-07", "spend": 72, "orders": 4, "acos": 0.28},
+                ],
+            }
+        ]
+    )
+
+    assert not [
+        alert for alert in alerts if alert["alert_type"] == "ad_spend_increasing_without_orders_growth"
+    ]

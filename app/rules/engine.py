@@ -71,6 +71,29 @@ def evaluate_alert_rules(metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     unit="clicks",
                 )
             )
+        ad_trend = row.get("ads_trend_7d", [])[-3:]
+        if _spend_increasing_without_orders_growth(ad_trend):
+            spend_values = [entry.get("spend", 0) for entry in ad_trend]
+            order_values = [entry.get("orders", 0) for entry in ad_trend]
+            alerts.append(
+                _alert(
+                    date_value,
+                    sku,
+                    "ad_spend_increasing_without_orders_growth",
+                    "medium",
+                    "近 3 日广告花费持续增加，但广告订单未同步增长",
+                    observed={
+                        "spend": spend_values,
+                        "orders": order_values,
+                    },
+                    baseline={
+                        "spend": spend_values[0],
+                        "orders": order_values[0],
+                    },
+                    threshold="spend strictly increasing and orders not increasing",
+                    unit="mixed",
+                )
+            )
         inventory_days = row.get("inventory_days", 0)
         safety_stock_days = row.get("safety_stock_days", 30)
         replenishment_days = row.get("replenishment_days", 20)
@@ -140,6 +163,16 @@ def evaluate_alert_rules(metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 )
             )
     return alerts
+
+
+def _spend_increasing_without_orders_growth(ad_trend: list[dict[str, Any]]) -> bool:
+    if len(ad_trend) < 3:
+        return False
+    spend_values = [float(entry.get("spend", 0) or 0) for entry in ad_trend]
+    order_values = [int(entry.get("orders", 0) or 0) for entry in ad_trend]
+    spend_increasing = spend_values[0] < spend_values[1] < spend_values[2]
+    orders_not_growing = order_values[-1] <= order_values[0]
+    return spend_values[-1] > 0 and spend_increasing and orders_not_growing
 
 
 def _alert(
