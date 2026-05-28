@@ -254,3 +254,176 @@ def test_sales_agent_declining_trend_fallback_does_not_use_drop_ratio_context():
 
     assert result["agent_result"]["summary"] == "近 3 日销量连续下降，需排查流量、价格、优惠、库存和竞品变化。"
     assert result["agent_result"]["priority"] == 2
+
+
+def test_ops_graph_routes_ad_spend_trend_alert_to_ads_agent():
+    graph = build_ops_graph(
+        llm_client=StaticLLMClient(
+            """
+            {
+              "summary": "近 3 日广告花费持续增加，但广告订单未同步增长",
+              "root_causes": ["关键词匹配过宽", "无效点击增加"],
+              "diagnostic_checks": ["检查高花费搜索词", "检查广告组 ACOS"],
+              "recommended_actions": ["降低低转化关键词出价", "否定无效搜索词"],
+              "priority": 2,
+              "immediate_action_required": false
+            }
+            """
+        ),
+        feishu_sync=lambda state: "synced",
+    )
+
+    result = graph.invoke(
+        {
+            "run_date": "2026-01-07",
+            "alert_id": 20,
+            "sku": "SKU-ADS",
+            "alert_type": "ad_spend_increasing_without_orders_growth",
+            "severity": "medium",
+            "metrics": {
+                "spend": 72,
+                "ad_orders": 1,
+                "ad_sales": 130,
+                "acos": 0.55,
+                "target_acos": 0.3,
+                "roas": 1.8,
+                "ctr": 0.03,
+                "cvr": 0.015,
+                "cpc": 1.1,
+                "clicks": 65,
+                "impressions": 2200,
+                "ads_trend_7d": [
+                    {"date": "2026-01-05", "spend": 30, "orders": 2, "acos": 0.35},
+                    {"date": "2026-01-06", "spend": 45, "orders": 2, "acos": 0.42},
+                    {"date": "2026-01-07", "spend": 72, "orders": 1, "acos": 0.55},
+                ],
+            },
+            "history": [],
+            "rule_context": {
+                "observed": {"spend": [30, 45, 72], "orders": [2, 2, 1]},
+                "baseline": {"spend": 30, "orders": 2},
+                "threshold": "spend strictly increasing and orders not increasing",
+                "unit": "mixed",
+            },
+            "agent_result": {},
+            "feishu_sync_status": "",
+            "errors": [],
+        }
+    )
+
+    assert result["agent_result"]["agent_name"] == "ads_agent"
+    assert result["agent_result"]["summary"] == "近 3 日广告花费持续增加，但广告订单未同步增长"
+
+
+def test_ads_agent_receives_ads_analysis_prompt():
+    prompts = []
+
+    class RecordingLLM:
+        def generate(self, system_prompt: str, user_prompt: str) -> str:
+            prompts.append((system_prompt, user_prompt))
+            return """
+            {
+              "summary": "ACOS 高于目标值，需检查广告花费和转化率",
+              "root_causes": ["关键词匹配过宽", "转化率下降"],
+              "diagnostic_checks": ["检查高花费搜索词", "检查广告组 ACOS"],
+              "recommended_actions": ["降低低转化关键词出价", "保留有订单且 ACOS 可控的广告组"],
+              "priority": 2,
+              "immediate_action_required": false
+            }
+            """
+
+    graph = build_ops_graph(llm_client=RecordingLLM(), feishu_sync=lambda state: "synced")
+
+    result = graph.invoke(
+        {
+            "run_date": "2026-01-07",
+            "alert_id": 21,
+            "sku": "SKU-ADS",
+            "alert_type": "acos_high",
+            "severity": "medium",
+            "metrics": {
+                "acos": 0.45,
+                "target_acos": 0.3,
+                "roas": 2.2,
+                "ctr": 0.04,
+                "cvr": 0.02,
+                "cpc": 1.2,
+                "spend": 72,
+                "clicks": 60,
+                "ad_orders": 2,
+                "ads_trend_7d": [],
+            },
+            "history": [],
+            "rule_context": {
+                "observed": 0.45,
+                "baseline": 0.3,
+                "threshold": 0.4,
+                "unit": "ratio",
+            },
+            "agent_result": {},
+            "feishu_sync_status": "",
+            "errors": [],
+        }
+    )
+
+    system_prompt, user_prompt = prompts[0]
+    assert "亚马逊广告分析 Agent" in system_prompt
+    assert "ACOS、ROAS、CTR、CVR、CPC" in system_prompt
+    assert "只分析广告投放问题" in system_prompt
+    assert "异常说明必须结合命中的广告规则和关键指标" in system_prompt
+    assert "target_acos" in user_prompt
+    assert "roas" in user_prompt
+    assert result["agent_result"]["possible_causes"] == ["关键词匹配过宽", "转化率下降"]
+
+
+def test_ads_agent_malformed_output_uses_alert_specific_fallback():
+    graph = build_ops_graph(
+        llm_client=StaticLLMClient("# 广告分析报告\n\n" + "无法解析。" * 100),
+        feishu_sync=lambda state: "synced",
+    )
+
+    result = graph.invoke(
+        {
+            "run_date": "2026-01-07",
+            "alert_id": 22,
+            "sku": "SKU-ADS",
+            "alert_type": "clicks_without_orders",
+            "severity": "medium",
+            "metrics": {
+                "clicks": 65,
+                "ad_orders": 0,
+                "acos": 0,
+                "target_acos": 0.3,
+                "roas": 0,
+                "ctr": 0.03,
+                "cvr": 0,
+                "cpc": 1.1,
+            },
+            "history": [],
+            "rule_context": {
+                "observed": 65,
+                "baseline": 0,
+                "threshold": 20,
+                "unit": "clicks",
+            },
+            "agent_result": {},
+            "feishu_sync_status": "",
+            "errors": [],
+        }
+    )
+
+    agent_result = result["agent_result"]
+    assert agent_result["agent_name"] == "ads_agent"
+    assert agent_result["summary"] == "点击达到阈值但无广告订单，需排查搜索词质量和 Listing 转化。"
+    assert agent_result["root_causes"] == ["关键词匹配过宽", "无效点击增加", "转化率下降", "Listing 页面转化不足"]
+    assert agent_result["diagnostic_checks"] == [
+        "检查高花费搜索词",
+        "检查点击无订单关键词",
+        "检查 CTR/CVR 是否低于历史",
+        "检查广告组 ACOS",
+    ]
+    assert agent_result["recommended_actions"] == [
+        "降低低转化关键词出价",
+        "否定无效搜索词",
+        "保留有订单且 ACOS 可控的广告组",
+    ]
