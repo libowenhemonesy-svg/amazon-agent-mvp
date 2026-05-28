@@ -219,3 +219,38 @@ def test_sales_agent_malformed_output_uses_metric_aware_fallback():
     assert agent_result["recommended_actions"] == [
         "优先检查广告曝光、购物车状态、优惠券状态、库存状态和主要竞品价格变化"
     ]
+
+
+def test_sales_agent_declining_trend_fallback_does_not_use_drop_ratio_context():
+    graph = build_ops_graph(
+        llm_client=StaticLLMClient("# 很长的销售分析\n\n" + "无法解析。" * 100),
+        feishu_sync=lambda state: "synced",
+    )
+
+    result = graph.invoke(
+        {
+            "run_date": "2026-01-07",
+            "alert_id": 12,
+            "sku": "SKU-001",
+            "alert_type": "sales_declining_3d",
+            "severity": "medium",
+            "metrics": {
+                "units_sold": 4,
+                "avg_units_7d": 7,
+                "sales_trend_7d": [10, 9, 8, 7, 6, 5, 4],
+            },
+            "history": [],
+            "rule_context": {
+                "observed": [6, 5, 4],
+                "baseline": "3-day trend",
+                "threshold": "strictly declining",
+                "unit": "units",
+            },
+            "agent_result": {},
+            "feishu_sync_status": "",
+            "errors": [],
+        }
+    )
+
+    assert result["agent_result"]["summary"] == "近 3 日销量连续下降，需排查流量、价格、优惠、库存和竞品变化。"
+    assert result["agent_result"]["priority"] == 2

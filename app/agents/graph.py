@@ -163,6 +163,8 @@ def _fallback_summary(agent_name: str, state: OpsGraphState) -> str:
 
 
 def _sales_fallback_summary(state: OpsGraphState) -> str:
+    if state.get("alert_type") != "sales_drop":
+        return "近 3 日销量连续下降，需排查流量、价格、优惠、库存和竞品变化。"
     metrics = state.get("metrics", {})
     rule_context = state.get("rule_context", {})
     units_sold = rule_context.get("observed", metrics.get("units_sold"))
