@@ -1,149 +1,160 @@
-# Amazon Agent MVP
+# Amazon Agent 运营台
 
-轻量版亚马逊运营 Agent 后端，支持 CSV/Excel 导入、每日 SKU 指标计算、规则预警、LangGraph Agent 建议和飞书多维表同步边界。
+> AI 驱动的跨境电商运营分析平台，集成竞品分析、智能诊断、自动化任务等功能
 
-## Stack
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- Python 3.11+
-- FastAPI
-- SQLAlchemy / Alembic
-- PostgreSQL for deployment, SQLite for local smoke tests
-- Pandas / openpyxl
-- LangGraph
+## 功能特性
 
-## Setup
+### 核心功能
+- **运营总览** — 一图掌握销售、广告、库存、质量全貌
+- **数据导入** — 支持 CSV/Excel 批量导入 SKU、销售、广告、库存、利润、退货数据
+- **风险分析** — 自动识别高风险项，按等级和模块分类展示
+- **异常任务** — 每日简报 + 告警任务管理，支持状态跟踪
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .[test]
-Copy-Item .env.example .env
+### AI 工具
+- **AI 助手** — 智能对话，查询运营数据、分析问题、提供建议
+- **战场地图** — 竞品分析，市场份额、价格带、关键词洞察
+- **运营天眼** — 产品健康度诊断，六大因子分析 + 优化建议
+- **销售监控** — 实时监控销售数据，自动识别异常波动
+- **广告分析** — 深度分析广告投放效果，优化广告策略
+- **库存管家** — 智能库存管理，避免断货和积压
+
+### 自动化
+- **定时分析** — 每天自动执行分析，生成报告
+- **数据同步** — 定时同步易仓/亚马逊数据
+- **竞品监控** — 定时监控竞品变化
+
+### 系统集成
+- **易仓 ERP** — 对接易仓 API，获取订单、库存、物流数据
+- **亚马逊 SP-API** — 连接亚马逊店铺，获取销售、广告数据
+- **飞书** — 同步数据到飞书多维表格
+
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 后端 | Python 3.11+, FastAPI, SQLAlchemy, Alembic |
+| AI | LangGraph, LangChain, DeepSeek |
+| 前端 | Vanilla JS, CSS3, HTML5 |
+| 数据库 | SQLite (开发), PostgreSQL (生产) |
+| 部署 | Render, Vercel, Docker |
+
+## 快速开始
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/libowenhemonesy-svg/amazon-agent-mvp.git
+cd amazon-agent-mvp
 ```
 
-For PostgreSQL, set `DATABASE_URL` and run:
+### 2. 安装依赖
 
-```powershell
-.\.venv\Scripts\alembic.exe upgrade head
-.\.venv\Scripts\uvicorn.exe app.main:app --reload
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Without `DATABASE_URL`, `app.main:app` uses a local SQLite file for development.
+### 3. 配置环境变量
 
-## DeepSeek
-
-The Agent layer uses a static local response by default. To use DeepSeek, set these variables before starting the API:
-
-```powershell
-$env:LLM_PROVIDER="deepseek"
-$env:DEEPSEEK_API_KEY="your_deepseek_api_key"
-$env:DEEPSEEK_MODEL="deepseek-chat"
+```bash
+cp .env.example .env
 ```
 
-Then start the server:
+编辑 `.env` 文件，填入你的 API 密钥：
 
-```powershell
-.\.venv\Scripts\uvicorn.exe app.main:app --reload
+```env
+# DeepSeek API（AI 功能必需）
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_api_key_here
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+
+# 飞书（可选）
+FEISHU_APP_ID=your_app_id
+FEISHU_APP_SECRET=your_app_secret
 ```
 
-Optional settings:
+### 4. 启动服务
 
-- `DEEPSEEK_BASE_URL`, defaults to `https://api.deepseek.com`
-- `DEEPSEEK_TIMEOUT_SECONDS`, defaults to `30`
-
-The integration calls DeepSeek's OpenAI-compatible chat completions endpoint and falls back to the static client only when `LLM_PROVIDER` is not `deepseek` or no API key is configured.
-
-Agent prompts require DeepSeek to return compact JSON rather than a long Markdown report:
-
-```json
-{
-  "summary": "库存低于补货周期，存在断货风险",
-  "root_causes": ["可售库存为0", "无在途库存"],
-  "diagnostic_checks": ["确认补货单", "检查FBA状态"],
-  "recommended_actions": ["立即确认补货计划", "暂停广告"],
-  "priority": 1,
-  "immediate_action_required": true
-}
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
 ```
 
-If the model returns malformed JSON or long prose, the Agent layer uses a short fallback task-card response so reports and Feishu tasks stay readable.
+访问 http://localhost:8010
 
-## API
+## 部署指南
 
-- `POST /imports/sku`
-- `POST /imports/sales`
-- `POST /imports/ads`
-- `POST /imports/inventory`
-- `POST /imports/profit`
-- `POST /imports/returns`
-- `POST /demo/load-sample`
-- `POST /jobs/daily-run?run_date=YYYY-MM-DD`
-- `GET /metrics/daily?date=YYYY-MM-DD`
-- `GET /alerts?date=YYYY-MM-DD`
-- `PATCH /alerts/{id}`
-- `GET /reports/daily?date=YYYY-MM-DD`
+### Render（免费）
 
-## Dashboard
+1. Fork 本仓库
+2. 登录 [Render](https://render.com)
+3. 创建 Web Service，连接 GitHub 仓库
+4. 配置环境变量
+5. 部署完成
 
-Start the API and open the local dashboard:
+详细步骤见 [部署文档](docs/deploy.md)
 
-```powershell
-.\.venv\Scripts\uvicorn.exe app.main:app --reload
+### 腾讯云轻量服务器
+
+```bash
+# SSH 连接服务器后执行
+curl -O https://raw.githubusercontent.com/libowenhemonesy-svg/amazon-agent-mvp/codex/langgraph-mvp/deploy.sh
+sudo bash deploy.sh
 ```
 
-Then visit:
+## 项目结构
 
-```text
-http://127.0.0.1:8000/
+```
+amazon-agent-mvp/
+├── app/
+│   ├── agents/          # AI Agent（LangGraph）
+│   ├── analysis/        # 分析模块（战场地图、运营天眼）
+│   ├── automation/      # 自动化任务
+│   ├── db/              # 数据库模型和操作
+│   ├── importers/       # 数据导入
+│   ├── integrations/    # 外部集成（飞书、易仓）
+│   ├── metrics/         # 指标计算
+│   ├── reports/         # 报告生成
+│   ├── rules/           # 规则引擎
+│   └── static/          # 前端文件
+├── sample_data/         # 示例数据
+├── tests/               # 测试用例
+├── requirements.txt     # Python 依赖
+└── render.yaml          # Render 部署配置
 ```
 
-The dashboard supports:
+## API 文档
 
-- Loading bundled sample data and running analysis with one click
-- Uploading SKU, sales, ads, inventory, profit, and returns/reviews CSV/XLSX files
-- Running daily analysis for the selected date
-- Viewing risk counts, risk bars, module distribution, and the daily director report
-- Viewing alert tasks and concise Agent recommendations
-- Updating alert status: `pending`, `processing`, `done`, `reviewed`, `ignored`
-- Showing Feishu sync status after each run: `disabled`, `skipped`, `synced`, or `failed`
+启动服务后访问：
+- Swagger UI: http://localhost:8010/docs
+- ReDoc: http://localhost:8010/redoc
 
-For a quick demo with no real data, click `载入示例并分析`. It imports the files in
-`sample_data/`, runs the `2026-01-07` analysis, and refreshes the dashboard. The bundled demo has six SKU scenarios: sales decline, advertising waste, inventory risk, profit risk, quality risk, and one normal SKU.
+## 贡献
 
-## Feishu Sync
+欢迎提交 Issue 和 Pull Request！
 
-When these environment variables are set, `daily-run` syncs four Bitable tables:
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
 
-- `FEISHU_APP_TOKEN`
-- `FEISHU_TENANT_ACCESS_TOKEN` or both `FEISHU_APP_ID` and `FEISHU_APP_SECRET`
-- `FEISHU_TABLE_SKU`: SKU master data
-- `FEISHU_TABLE_METRICS`: daily SKU monitoring metrics
-- `FEISHU_TABLE_ALERTS`: alert tasks and Agent recommendations
-- `FEISHU_TABLE_REPORTS`: archived daily reports
+## 许可证
 
-If `FEISHU_TENANT_ACCESS_TOKEN` is empty, the app exchanges `FEISHU_APP_ID` and
-`FEISHU_APP_SECRET` for a tenant token at runtime. If any Feishu table id or auth
-setting is missing, analysis still runs and returns `feishu_sync.status = skipped`.
+本项目采用 [MIT License](LICENSE) 开源许可证。
 
-## Current Analysis Method
+## 联系方式
 
-The MVP focuses on the main operations loop:
+- GitHub: [@libowenhemonesy-svg](https://github.com/libowenhemonesy-svg)
+- Issues: [提交问题](https://github.com/libowenhemonesy-svg/amazon-agent-mvp/issues)
 
-1. Calculate SKU-level metrics across SKU master, sales, ads, inventory, profit, and return/review modules.
-2. Apply configurable alert rules with SKU lifecycle, SKU thresholds, profit targets, and quality thresholds.
-3. Attach `rule_context` to every alert so Agent output has explicit observed values, baselines, thresholds, and units.
-4. Route alerts through LangGraph to sales, ads, or inventory Agent nodes.
-5. Return structured Agent output:
-   - `summary`
-   - `possible_causes`
-   - `diagnostic_checks`
-   - `recommended_actions`
-   - `priority`
-   - `immediate_action_required`
-6. Build a director-style daily report with severity counts, module counts, pending count, and top risks.
+## 致谢
 
-Low-volume SKU sales alerts are suppressed by default when the 7-day average is below 5 units, which reduces noisy false positives for new or low-velocity products.
-
-## Tests
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests -q
-```
+- [FastAPI](https://fastapi.tiangolo.com/) — 高性能 Python Web 框架
+- [LangGraph](https://langchain-ai.github.io/langgraph/) — AI Agent 编排框架
+- [DeepSeek](https://www.deepseek.com/) — AI 大模型服务
