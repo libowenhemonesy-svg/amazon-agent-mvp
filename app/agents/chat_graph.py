@@ -248,10 +248,9 @@ class ChatGraph:
 
         # 实时流式状态
         has_tool_calls = False
-        first_line_buffer = ""  # 缓冲第一行（判断是否是思考内容）
+        first_line_buffer = ""
         first_line_checked = False
         skip_first_line = False
-        line_buffer = ""
 
         try:
             async for event in self.graph.astream_events(input_state, config=config, version="v2"):
@@ -269,19 +268,19 @@ class ChatGraph:
                             if "\n" in first_line_buffer:
                                 idx = first_line_buffer.index("\n")
                                 first_line = first_line_buffer[:idx].strip()
-                                # 检查第一行是否是思考内容
                                 if any(kw in first_line for kw in THINKING_KEYWORDS):
                                     skip_first_line = True
                                 first_line_checked = True
-                                # 输出第一行之后的内容
                                 remaining = first_line_buffer[idx + 1:]
                                 if remaining and not skip_first_line:
                                     yield {"type": "token", "content": first_line_buffer[:idx + 1]}
                                 for char in remaining:
                                     yield {"type": "token", "content": char}
                         else:
-                            # 第一行已检查，直接输出
                             yield {"type": "token", "content": content}
+                    else:
+                        # 无工具调用：直接输出
+                        yield {"type": "token", "content": content}
 
                 elif kind == "on_tool_start":
                     has_tool_calls = True
