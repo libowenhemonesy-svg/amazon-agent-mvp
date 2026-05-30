@@ -1,0 +1,7 @@
+SKU,Date,Return Count,Return Reason,Negative Reviews,Rating
+SKU-SALES,2026-01-07,0,,0,4.5
+SKU-ADS,2026-01-07,1,不符合预期,0,4.4
+SKU-INV,2026-01-07,0,,0,4.6
+SKU-PROFIT,2026-01-07,0,,0,4.3
+SKU-QUALITY,2026-01-07,4,破损/质量问题,2,3.7
+SKU-OK,2026-01-07,0,,0,4.7

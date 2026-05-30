@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Amazon Agent 运营台</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- 侧边栏 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-block">
+          <span class="brand-mark">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+          </span>
+          <div>
+            <strong>Amazon Agent</strong>
+            <span>跨境电商运营中心</span>
+          </div>
+        </div>
+        <nav class="side-nav" aria-label="主导航">
+          <!-- 核心功能 -->
+          <div class="nav-section" data-section="core">
+            <div class="nav-section-header">
+              <span class="nav-section-title">核心功能</span>
+              <svg class="nav-section-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="nav-section-items">
+              <a class="nav-item is-active" href="#overview" data-page="overview">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </span>
+                运营总览
+              </a>
+              <a class="nav-item" href="#imports" data-page="imports">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </span>
+                数据导入
+              </a>
+              <a class="nav-item" href="#analytics" data-page="analytics">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </span>
+                风险分析
+              </a>
+              <a class="nav-item" href="#tasks" data-page="tasks">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                异常任务
+              </a>
+            </div>
+          </div>
+
+          <!-- AI 工具 -->
+          <div class="nav-section" data-section="ai">
+            <div class="nav-section-header">
+              <span class="nav-section-title">AI 工具</span>
+              <svg class="nav-section-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="nav-section-items">
+              <a class="nav-item" href="#chat" data-page="chat">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </span>
+                AI 助手
+              </a>
+              <a class="nav-item" href="#battlefield" data-page="battlefield">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>
+                </span>
+                战场地图
+              </a>
+              <a class="nav-item" href="#diagnosis" data-page="diagnosis">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </span>
+                运营天眼
+              </a>
+              <a class="nav-item" href="#sales-monitor" data-page="sales-monitor">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </span>
+                销售监控
+              </a>
+              <a class="nav-item" href="#ads-analysis" data-page="ads-analysis">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </span>
+                广告分析
+              </a>
+              <a class="nav-item" href="#inventory-agent" data-page="inventory-agent">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </span>
+                库存管家
+              </a>
+            </div>
+          </div>
+
+          <!-- 自动化 & 设置 -->
+          <div class="nav-section" data-section="settings">
+            <div class="nav-section-header">
+              <span class="nav-section-title">自动化 & 设置</span>
+              <svg class="nav-section-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="nav-section-items">
+              <a class="nav-item" href="#automation" data-page="automation">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                自动化任务
+              </a>
+              <a class="nav-item" href="#settings" data-page="settings">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                </span>
+                ERP 对接
+              </a>
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <strong id="system-status">运行中</strong>
+          </div>
+          <span class="version-tag">本地 MVP v0.1</span>
+        </div>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="dashboard">
+        <header class="topbar">
+          <button id="sidebar-toggle" class="icon-button menu-button" type="button" aria-label="展开导航">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="title-block">
+            <h1 id="page-title">运营总览</h1>
+            <p id="page-subtitle">销售 · 广告 · 库存 · 质量异常监控</p>
+          </div>
+          <div class="topbar-controls">
+            <div class="search-control">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="global-search" type="search" name="global-search" autocomplete="off" placeholder="搜索 SKU 或任务…" />
+            </div>
+            <button id="refresh-results" class="icon-button" type="button" aria-label="刷新结果" title="刷新结果">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- ========== 页面：总览 ========== -->
+        <div class="page" id="page-overview">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Dashboard</span>
+              <h2>Amazon Agent 运营台</h2>
+            </div>
+            <div class="date-control">
+              <label for="run-date">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                分析日期
+              </label>
+              <input id="run-date" type="date" value="2026-01-07" />
+            </div>
+          </section>
+
+          <section class="toolbar-panel">
+            <div class="toolbar-info">
+              <div class="toolbar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div>
+                <strong>每日分析</strong>
+                <span id="job-status">选择日期后载入示例或执行分析</span>
+              </div>
+            </div>
+            <div class="hero-actions">
+              <button id="load-demo" class="primary-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                载入示例并分析
+              </button>
+              <button id="run-analysis" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                执行分析
+              </button>
+              <button id="reset-day" class="danger-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                清空当天结果
+              </button>
+            </div>
+          </section>
+
+          <section class="summary-grid">
+            <article class="metric-tile tile-risk">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <span>风险数</span>
+                <strong id="risk-count">-</strong>
+              </div>
+            </article>
+            <article class="metric-tile tile-pending">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <span>待处理</span>
+                <strong id="pending-count">-</strong>
+              </div>
+            </article>
+            <article class="metric-tile tile-high">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div>
+                <span>高风险</span>
+                <strong id="high-count">-</strong>
+              </div>
+            </article>
+            <article class="metric-tile tile-inventory">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              </div>
+              <div>
+                <span>库存异常</span>
+                <strong id="inventory-count">-</strong>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <!-- ========== 页面：数据导入 ========== -->
+        <div class="page" id="page-imports" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Data Import</span>
+              <h2>数据导入</h2>
+            </div>
+            <div class="heading-actions">
+              <button id="sample-date" class="ghost-button" type="button">使用示例日期</button>
+            </div>
+          </section>
+
+          <div class="upload-grid">
+            <form class="upload-card" data-endpoint="/imports/sku">
+              <div class="upload-card-icon sku-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <label class="file-type">SKU<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">基础商品与负责人</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+            <form class="upload-card" data-endpoint="/imports/sales">
+              <div class="upload-card-icon sales-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              </div>
+              <label class="file-type">销售<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">订单与销售额</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+            <form class="upload-card" data-endpoint="/imports/ads">
+              <div class="upload-card-icon ads-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <label class="file-type">广告<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">花费、点击与转化</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+            <form class="upload-card" data-endpoint="/imports/inventory">
+              <div class="upload-card-icon inventory-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              </div>
+              <label class="file-type">库存<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">可售、在途与预留</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+            <form class="upload-card" data-endpoint="/imports/profit">
+              <div class="upload-card-icon profit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </div>
+              <label class="file-type">利润<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">成本、费用与广告费</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+            <form class="upload-card" data-endpoint="/imports/returns">
+              <div class="upload-card-icon returns-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+              </div>
+              <label class="file-type">退货评价<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <span class="file-hint">退货、差评与评分</span>
+              <div class="drop-zone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>拖拽文件到此处或点击选择</span>
+              </div>
+              <button type="submit" class="upload-btn">上传文件</button>
+              <output></output>
+            </form>
+          </div>
+        </div>
+
+        <!-- ========== 页面：风险分析 ========== -->
+        <div class="page" id="page-analytics" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Analytics</span>
+              <h2>风险分析</h2>
+            </div>
+          </section>
+
+          <div class="chart-grid">
+            <article class="panel compact-panel">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  风险等级
+                </h2>
+              </div>
+              <div id="risk-bars" class="bar-list" aria-live="polite"></div>
+            </article>
+            <article class="panel compact-panel">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                  模块分布
+                </h2>
+              </div>
+              <div id="module-bars" class="bar-list" aria-live="polite"></div>
+            </article>
+          </div>
+        </div>
+
+        <!-- ========== 页面：异常任务 ========== -->
+        <div class="page" id="page-tasks" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Tasks</span>
+              <h2>异常任务</h2>
+            </div>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel report-panel">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  每日简报
+                </h2>
+                <span id="last-updated"></span>
+              </div>
+              <p id="report-summary" class="empty-state">暂无日报</p>
+              <div id="top-risks" class="risk-list"></div>
+            </article>
+
+            <article class="panel alerts-panel">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  异常任务
+                </h2>
+                <div class="filter-row" aria-label="异常任务筛选">
+                  <div class="search-control small-search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input id="alert-search" type="search" name="alert-search" autocomplete="off" placeholder="搜索 SKU / 类型…" />
+                  </div>
+                  <select id="severity-filter" aria-label="风险等级筛选">
+                    <option value="all">全部等级</option>
+                    <option value="high">高风险</option>
+                    <option value="medium">中风险</option>
+                    <option value="low">低风险</option>
+                  </select>
+                  <select id="status-filter" aria-label="任务状态筛选">
+                    <option value="all">全部状态</option>
+                    <option value="pending">待处理</option>
+                    <option value="processing">处理中</option>
+                    <option value="done">已处理</option>
+                    <option value="reviewed">已复盘</option>
+                    <option value="ignored">忽略</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>类型</th>
+                      <th>等级</th>
+                      <th>建议</th>
+                      <th>状态</th>
+                    </tr>
+                  </thead>
+                  <tbody id="alerts-body" aria-live="polite">
+                    <tr>
+                      <td colspan="5" class="empty-state">暂无异常</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <!-- ========== 页面：AI 助手 ========== -->
+        <div class="page" id="page-chat" style="display:none">
+          <section class="chat-panel is-active" id="chat">
+            <div class="chat-header">
+              <div class="chat-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <h2>AI 运营助手</h2>
+              </div>
+              <span class="chat-status" id="chat-status">在线</span>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-welcome">
+                <div class="welcome-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </div>
+                <h3>欢迎使用 AI 运营助手</h3>
+                <p>我可以帮你查询运营数据、分析问题、提供建议</p>
+                <div class="quick-questions">
+                  <button class="quick-btn" data-question="查询最近7天销售最好的SKU">查询热销 SKU</button>
+                  <button class="quick-btn" data-question="查看库存告警">库存告警</button>
+                  <button class="quick-btn" data-question="分析广告ACOS表现">广告分析</button>
+                  <button class="quick-btn" data-question="查看今日待处理任务">待处理任务</button>
+                </div>
+              </div>
+            </div>
+            <form class="chat-input-form" id="chat-form">
+              <div class="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="输入你的问题..." autocomplete="off" />
+                <button type="submit" id="chat-send" class="chat-send-btn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <!-- ========== 页面：战场地图 ========== -->
+        <div class="page" id="page-battlefield" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Battlefield Map</span>
+              <h2>战场地图</h2>
+            </div>
+          </section>
+
+          <div class="battlefield-input">
+            <input type="text" id="battlefield-asin" placeholder="输入目标 ASIN" />
+            <select id="battlefield-marketplace">
+              <option value="US">美国站</option>
+              <option value="UK">英国站</option>
+              <option value="DE">德国站</option>
+              <option value="JP">日本站</option>
+            </select>
+            <button id="battlefield-analyze" class="primary-button">开始分析</button>
+          </div>
+
+          <div class="battlefield-content" id="battlefield-content" style="display:none">
+            <div class="battlefield-tabs">
+              <button class="tab-btn active" data-tab="situation">战场态势</button>
+              <button class="tab-btn" data-tab="traffic">流量洞察</button>
+              <button class="tab-btn" data-tab="voice">用户心声</button>
+            </div>
+
+            <div class="tab-content active" id="tab-situation">
+              <div class="chart-grid">
+                <div class="panel">
+                  <h3>市场份额分布</h3>
+                  <div id="market-share-chart"></div>
+                </div>
+                <div class="panel">
+                  <h3>价格带分析</h3>
+                  <div id="price-band-chart"></div>
+                </div>
+              </div>
+              <div class="panel" style="margin-top:16px">
+                <h3>竞品列表</h3>
+                <div class="table-wrap">
+                  <table id="competitor-table">
+                    <thead>
+                      <tr>
+                        <th>ASIN</th>
+                        <th>标题</th>
+                        <th>价格</th>
+                        <th>评分</th>
+                        <th>评论数</th>
+                        <th>BSR</th>
+                        <th>份额</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tab-traffic" style="display:none">
+              <div class="chart-grid">
+                <div class="panel">
+                  <h3>搜索词竞争度</h3>
+                  <div id="keyword-competition-chart"></div>
+                </div>
+                <div class="panel">
+                  <h3>广告位占比</h3>
+                  <div id="ad-position-chart"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tab-voice" style="display:none">
+              <div class="chart-grid">
+                <div class="panel">
+                  <h3>正面关键词</h3>
+                  <div id="positive-keywords"></div>
+                </div>
+                <div class="panel">
+                  <h3>负面关键词</h3>
+                  <div id="negative-keywords"></div>
+                </div>
+              </div>
+              <div class="panel" style="margin-top:16px">
+                <h3>痛点归纳</h3>
+                <div id="pain-points"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：运营天眼 ========== -->
+        <div class="page" id="page-diagnosis" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Operations Eye</span>
+              <h2>运营天眼</h2>
+            </div>
+          </section>
+
+          <div class="diagnosis-input">
+            <input type="text" id="diagnosis-asin" placeholder="输入目标 ASIN" />
+            <button id="diagnosis-run" class="primary-button">开始诊断</button>
+          </div>
+
+          <div class="diagnosis-content" id="diagnosis-content" style="display:none">
+            <!-- 综合健康评分（颜色条） -->
+            <div class="health-bar-container">
+              <div class="health-bar">
+                <div class="health-bar-fill" id="health-bar-fill"></div>
+              </div>
+              <div class="health-bar-labels">
+                <span class="health-label red">风险 (0-60)</span>
+                <span class="health-label yellow">关注 (60-80)</span>
+                <span class="health-label green">健康 (80-100)</span>
+              </div>
+              <div class="health-score-display">
+                <span id="health-score-value">--</span>
+                <span id="health-score-text">综合健康评分</span>
+              </div>
+            </div>
+
+            <!-- 六大分析因子 -->
+            <div class="six-factors">
+              <h3>六大分析因子</h3>
+              <div class="factors-grid">
+                <div class="factor-item" id="factor-sales">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">销量趋势</span>
+                    <span class="factor-value" id="factor-sales-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-sales-status"></span>
+                </div>
+                <div class="factor-item" id="factor-traffic">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">流量健康</span>
+                    <span class="factor-value" id="factor-traffic-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-traffic-status"></span>
+                </div>
+                <div class="factor-item" id="factor-conversion">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">转化效率</span>
+                    <span class="factor-value" id="factor-conversion-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-conversion-status"></span>
+                </div>
+                <div class="factor-item" id="factor-competitive">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">竞争态势</span>
+                    <span class="factor-value" id="factor-competitive-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-competitive-status"></span>
+                </div>
+                <div class="factor-item" id="factor-review">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">评论风险</span>
+                    <span class="factor-value" id="factor-review-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-review-status"></span>
+                </div>
+                <div class="factor-item" id="factor-ad">
+                  <div class="factor-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </div>
+                  <div class="factor-info">
+                    <span class="factor-label">广告表现</span>
+                    <span class="factor-value" id="factor-ad-value">--</span>
+                  </div>
+                  <span class="factor-status" id="factor-ad-status"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 出单词 TOP 分析 -->
+            <div class="panel" style="margin-top:20px">
+              <h3>出单词 TOP 分析</h3>
+              <p class="panel-desc">最近一周点击排名前三的关键词</p>
+              <div class="table-wrap">
+                <table id="top-keywords-table">
+                  <thead>
+                    <tr>
+                      <th>关键词</th>
+                      <th>ABA 排名</th>
+                      <th>点击共享</th>
+                      <th>转化共享</th>
+                      <th>TOP3 点击占比</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 销量趋势分析 -->
+            <div class="panel" style="margin-top:20px">
+              <h3>销量趋势分析</h3>
+              <p class="panel-desc">最近 30 天销量走势</p>
+              <div id="sales-trend-chart" class="trend-chart"></div>
+            </div>
+
+            <!-- 优化建议 -->
+            <div class="panel" style="margin-top:20px">
+              <h3>优化建议</h3>
+              <div id="recommendations-content"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：销售监控 ========== -->
+        <div class="page" id="page-sales-monitor" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Sales Monitor</span>
+              <h2>销售监控</h2>
+            </div>
+          </section>
+          <div class="panel">
+            <h3>销售监控 Agent</h3>
+            <p>实时监控销售数据，自动识别异常波动并预警</p>
+            <div class="agent-features">
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </span>
+                <div>
+                  <strong>销量异常检测</strong>
+                  <p>自动识别销量骤降、连续下滑等异常</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                <div>
+                  <strong>智能预警</strong>
+                  <p>基于历史数据和行业基准自动预警</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </span>
+                <div>
+                  <strong>诊断报告</strong>
+                  <p>生成详细的销售诊断报告和优化建议</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：广告分析 ========== -->
+        <div class="page" id="page-ads-analysis" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Ads Analysis</span>
+              <h2>广告分析</h2>
+            </div>
+          </section>
+          <div class="panel">
+            <h3>广告分析 Agent</h3>
+            <p>深度分析广告投放效果，优化广告策略</p>
+            <div class="agent-features">
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </span>
+                <div>
+                  <strong>ACoS 优化</strong>
+                  <p>分析广告花费产出比，优化出价策略</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <div>
+                  <strong>关键词分析</strong>
+                  <p>识别高转化关键词，优化投放策略</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </span>
+                <div>
+                  <strong>转化追踪</strong>
+                  <p>追踪广告转化路径，提升 ROI</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：库存管家 ========== -->
+        <div class="page" id="page-inventory-agent" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Inventory Agent</span>
+              <h2>库存管家</h2>
+            </div>
+          </section>
+          <div class="panel">
+            <h3>库存管家 Agent</h3>
+            <p>智能库存管理，避免断货和积压</p>
+            <div class="agent-features">
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                </span>
+                <div>
+                  <strong>库存预警</strong>
+                  <p>自动监控库存水位，提前预警断货风险</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                </span>
+                <div>
+                  <strong>补货建议</strong>
+                  <p>基于销量趋势智能推荐补货时间和数量</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </span>
+                <div>
+                  <strong>成本优化</strong>
+                  <p>优化库存周转，降低仓储成本</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：自动化任务 ========== -->
+        <div class="page" id="page-automation" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Automation</span>
+              <h2>自动化任务</h2>
+            </div>
+            <div class="heading-actions">
+              <button id="refresh-tasks" class="ghost-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                刷新
+              </button>
+            </div>
+          </section>
+
+          <div class="automation-content">
+            <!-- 任务列表 -->
+            <div class="tasks-grid" id="tasks-grid">
+              <!-- 任务卡片将通过 JavaScript 动态生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 页面：ERP 对接 ========== -->
+        <div class="page" id="page-settings" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Integration</span>
+              <h2>ERP 对接</h2>
+            </div>
+          </section>
+
+          <div class="settings-content">
+            <!-- 易仓ERP 设置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <div class="settings-card-icon eccang-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <div>
+                  <h3>易仓ERP</h3>
+                  <p>连接易仓ERP获取订单、库存、物流数据</p>
+                </div>
+                <span class="connection-status" id="eccang-status">未连接</span>
+              </div>
+              <form class="settings-form" id="eccang-form">
+                <div class="form-group">
+                  <label for="eccang-app-key">App Key</label>
+                  <input type="text" id="eccang-app-key" placeholder="输入易仓 App Key" />
+                </div>
+                <div class="form-group">
+                  <label for="eccang-app-secret">App Secret</label>
+                  <input type="password" id="eccang-app-secret" placeholder="输入易仓 App Secret" />
+                </div>
+                <div class="form-group">
+                  <label for="eccang-base-url">API 地址</label>
+                  <input type="text" id="eccang-base-url" value="https://open.eccang.com" placeholder="易仓API地址" />
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="test-btn" onclick="testEccangConnection()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    测试连接
+                  </button>
+                  <button type="submit" class="save-btn">保存设置</button>
+                </div>
+                <div class="form-message" id="eccang-message"></div>
+              </form>
+            </div>
+
+            <!-- 亚马逊设置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <div class="settings-card-icon amazon-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                </div>
+                <div>
+                  <h3>亚马逊店铺</h3>
+                  <p>连接亚马逊SP-API获取销售、广告数据</p>
+                </div>
+                <span class="connection-status" id="amazon-status">未连接</span>
+              </div>
+              <form class="settings-form" id="amazon-form">
+                <div class="form-group">
+                  <label for="amazon-seller-id">Seller ID</label>
+                  <input type="text" id="amazon-seller-id" placeholder="输入亚马逊 Seller ID" />
+                </div>
+                <div class="form-group">
+                  <label for="amazon-marketplace">站点</label>
+                  <select id="amazon-marketplace">
+                    <option value="US">美国站 (US)</option>
+                    <option value="UK">英国站 (UK)</option>
+                    <option value="DE">德国站 (DE)</option>
+                    <option value="FR">法国站 (FR)</option>
+                    <option value="JP">日本站 (JP)</option>
+                    <option value="CA">加拿大站 (CA)</option>
+                    <option value="AU">澳大利亚站 (AU)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="amazon-refresh-token">Refresh Token</label>
+                  <input type="password" id="amazon-refresh-token" placeholder="输入 Refresh Token" />
+                </div>
+                <div class="form-group">
+                  <label for="amazon-client-id">Client ID (LWA)</label>
+                  <input type="text" id="amazon-client-id" placeholder="输入 LWA Client ID" />
+                </div>
+                <div class="form-group">
+                  <label for="amazon-client-secret">Client Secret (LWA)</label>
+                  <input type="password" id="amazon-client-secret" placeholder="输入 LWA Client Secret" />
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="save-btn">保存设置</button>
+                </div>
+                <div class="form-message" id="amazon-message"></div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

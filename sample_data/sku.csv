@@ -1,0 +1,7 @@
+SKU,ASIN,Platform Link,Store,Marketplace,Product Category,Owner,Responsible Agent,Lifecycle,Target ACOS,Target Gross Margin,Safety Stock Days,Replenishment Days,Enabled
+SKU-SALES,B0DEMO001,https://amazon.com/dp/B0DEMO001,Store-A,US,Home,运营A,Sales-Agent-01,stable,0.30,0.40,30,20,true
+SKU-ADS,B0DEMO002,https://amazon.com/dp/B0DEMO002,Store-A,US,Kitchen,运营B,Ads-Agent-01,growth,0.25,0.38,28,22,true
+SKU-INV,B0DEMO003,https://amazon.com/dp/B0DEMO003,Store-B,US,Outdoor,运营C,Inventory-Agent-01,stable,0.32,0.42,35,25,true
+SKU-PROFIT,B0DEMO004,https://amazon.com/dp/B0DEMO004,Store-B,US,Electronics,运营D,Profit-Agent-01,stable,0.30,0.45,30,20,true
+SKU-QUALITY,B0DEMO005,https://amazon.com/dp/B0DEMO005,Store-C,US,Beauty,运营E,Quality-Agent-01,growth,0.28,0.40,25,18,true
+SKU-OK,B0DEMO006,https://amazon.com/dp/B0DEMO006,Store-C,US,Office,运营F,Sales-Agent-01,stable,0.30,0.40,30,20,true
