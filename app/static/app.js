@@ -112,6 +112,7 @@ const pageTitles = {
   imports: { title: "数据导入", subtitle: "上传 CSV/Excel 文件导入运营数据" },
   analytics: { title: "风险分析", subtitle: "查看风险等级分布和模块统计" },
   tasks: { title: "异常任务", subtitle: "查看每日简报和异常告警" },
+  "ai-selection": { title: "AI 选品", subtitle: "Chrome 插件采集商品 · AI 分析选品" },
   chat: { title: "AI 助手", subtitle: "智能对话查询运营数据" },
   battlefield: { title: "战场地图", subtitle: "竞品分析 · 市场份额 · 关键词洞察" },
   diagnosis: { title: "运营天眼", subtitle: "产品健康度诊断 · 优化建议" },
@@ -154,6 +155,9 @@ function activateNavItem(event) {
   // 特殊页面初始化
   if (pageName === "settings") {
     loadSettings();
+  }
+  if (pageName === "ai-selection") {
+    loadChromeProducts();
   }
 }
 
@@ -1421,3 +1425,192 @@ function editTask(taskId) {
 
 // 在 DOMContentLoaded 中初始化自动化任务
 document.addEventListener("DOMContentLoaded", initAutomation);
+
+// ==================== AI 选品功能 ====================
+
+let selectedProducts = new Set();
+
+function initAISelection() {
+  const refreshBtn = document.getElementById("refresh-products");
+  const analyzeBtn = document.getElementById("analyze-selected");
+  const selectAll = document.getElementById("select-all");
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", loadChromeProducts);
+  }
+
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener("click", analyzeSelectedProducts);
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener("change", toggleSelectAll);
+  }
+}
+
+async function loadChromeProducts() {
+  const tbody = document.getElementById("products-body");
+  const totalProducts = document.getElementById("total-products");
+
+  try {
+    const response = await fetch("/api/chrome/products");
+    const data = await response.json();
+
+    if (data.products && data.products.length > 0) {
+      renderProducts(data.products);
+      totalProducts.textContent = data.products.length;
+    } else {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-state">
+            <div class="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            </div>
+            <p>暂无采集数据</p>
+            <p class="empty-hint">请使用 Chrome 插件在 Amazon 商品页面采集数据</p>
+          </td>
+        </tr>
+      `;
+      totalProducts.textContent = "0";
+    }
+  } catch (error) {
+    console.error("加载商品失败:", error);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state">
+          <p>加载失败: ${error.message}</p>
+          <p class="empty-hint">请确保后端服务已启动</p>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function renderProducts(products) {
+  const tbody = document.getElementById("products-body");
+
+  tbody.innerHTML = products
+    .map(
+      (product) => `
+    <tr>
+      <td>
+        <input type="checkbox" class="product-checkbox" data-asin="${escapeHtml(product.asin || '')}" />
+      </td>
+      <td>
+        <span class="asin-text">${escapeHtml(product.asin || "-")}</span>
+      </td>
+      <td class="product-title-cell">
+        ${escapeHtml(product.title || product.asin || "-")}
+      </td>
+      <td>${escapeHtml(product.price || "-")}</td>
+      <td>${escapeHtml(product.rating || "-")}</td>
+      <td>${escapeHtml(product.review_count || "-")}</td>
+      <td>
+        <a href="${escapeHtml(product.url || "#")}" target="_blank" class="product-link">
+          查看商品
+        </a>
+        <button class="action-btn danger" onclick="deleteProduct('${escapeHtml(product.asin || "")}')">
+          删除
+        </button>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+
+  // 绑定复选框事件
+  document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", updateSelectedCount);
+  });
+}
+
+function toggleSelectAll(event) {
+  const checked = event.currentTarget.checked;
+  document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
+    checkbox.checked = checked;
+  });
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const checkboxes = document.querySelectorAll(".product-checkbox:checked");
+  const analyzeBtn = document.getElementById("analyze-selected");
+
+  selectedProducts.clear();
+  checkboxes.forEach((cb) => {
+    selectedProducts.add(cb.dataset.asin);
+  });
+
+  if (analyzeBtn) {
+    analyzeBtn.disabled = selectedProducts.size === 0;
+    analyzeBtn.textContent = selectedProducts.size > 0 ? `AI 分析选中商品 (${selectedProducts.size})` : "AI 分析选中商品";
+  }
+}
+
+async function deleteProduct(asin) {
+  if (!asin) return;
+  if (!confirm(`确定要删除 ASIN: ${asin} 吗？`)) return;
+
+  // TODO: 实现删除功能
+  alert("删除功能开发中");
+}
+
+async function analyzeSelectedProducts() {
+  if (selectedProducts.size === 0) {
+    alert("请先选择要分析的商品");
+    return;
+  }
+
+  const analyzeBtn = document.getElementById("analyze-selected");
+  const analysisResult = document.getElementById("analysis-result");
+  const analysisContent = document.getElementById("analysis-content");
+
+  try {
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="loading"></span>分析中...';
+
+    // 模拟分析结果（实际应调用后端 API）
+    analysisResult.style.display = "block";
+    analysisContent.innerHTML = `
+      <div class="analysis-card">
+        <h4>选品分析报告</h4>
+        <p>已分析 ${selectedProducts.size} 个商品</p>
+        <div style="margin-top: 16px;">
+          <div class="analysis-score good">推荐指数: 85/100</div>
+        </div>
+        <div style="margin-top: 16px;">
+          <strong>分析摘要：</strong>
+          <ul style="margin-top: 8px; padding-left: 20px;">
+            <li>平均评分 4.3 星，高于行业平均水平</li>
+            <li>价格区间 $15-$50，竞争适中</li>
+            <li>评论数量充足，市场验证充分</li>
+            <li>建议关注差评中的产品质量问题</li>
+          </ul>
+        </div>
+      </div>
+      <div class="analysis-card warning">
+        <h4>风险提示</h4>
+        <ul style="padding-left: 20px;">
+          <li>部分商品退货率较高，需关注</li>
+          <li>竞争激烈，建议差异化定位</li>
+        </ul>
+      </div>
+    `;
+
+    // 更新统计
+    document.getElementById("analyzed-count").textContent = selectedProducts.size;
+    document.getElementById("recommended-count").textContent = Math.floor(selectedProducts.size * 0.6);
+
+  } catch (error) {
+    alert("分析失败: " + error.message);
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      AI 分析选中商品
+    `;
+  }
+}
+
+// 在 DOMContentLoaded 中初始化 AI 选品
+document.addEventListener("DOMContentLoaded", initAISelection);

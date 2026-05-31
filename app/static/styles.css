@@ -2448,3 +2448,196 @@ td:first-child {
     font-size: 36px;
   }
 }
+
+/* ==================== AI 选品 ==================== */
+
+.ai-selection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.stat-label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.heading-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-left: 12px;
+}
+
+/* 空状态 */
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state p {
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+.empty-hint {
+  font-size: 13px;
+}
+
+/* 商品表格 */
+.product-title-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.product-link:hover {
+  text-decoration: underline;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.action-btn:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.action-btn.danger {
+  color: var(--danger);
+}
+
+.action-btn.danger:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-light);
+}
+
+/* AI 分析结果 */
+.analysis-card {
+  padding: 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.analysis-card.warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+
+.analysis-card.danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+}
+
+.analysis-card h4 {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: #1a1a2e;
+}
+
+.analysis-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.analysis-score.good {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.analysis-score.warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.analysis-score.bad {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+@media (max-width: 960px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -6,10 +6,11 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agents.graph import build_ops_graph
@@ -21,7 +22,7 @@ from app.analysis.diagnosis import DiagnosisAnalyzer
 from app.automation.scheduler import AutomationScheduler, AutomationTask, TaskType, TaskStatus, init_default_tasks, scheduler
 from app.automation.handlers import handle_daily_analysis, handle_data_sync, handle_competitor_monitor
 from app.integrations.eccang.client import EccangClient
-from app.db.models import AdsDaily, Base, InventoryDaily, ProfitDaily, ReturnReviewDaily, SalesDaily
+from app.db.models import AdsDaily, Base, InventoryDaily, ProfitDaily, ReturnReviewDaily, SalesDaily, SkuMaster
 from app.db.repository import (
     get_daily_report,
     delete_daily_run_outputs,
@@ -47,6 +48,8 @@ from app.metrics.calculator import calculate_daily_metrics
 from app.rules.engine import evaluate_alert_rules
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
 load_env_file(Path.cwd() / ".env")
 
 
@@ -59,9 +62,24 @@ class ChatRequest(BaseModel):
     conversation_id: str = "default"
 
 
+class ChromeProductData(BaseModel):
+    """Chrome 插件提取的商品数据"""
+    title: str = ""
+    price: str = ""
+    rating: str = ""
+    review_count: str = ""
+    bullets: list[str] = []
+    url: str = ""
+    asin: str = ""
+    reviews: list[dict] = []
+
+
+ChromeProductData.model_rebuild()
+
+
 def create_app(
     *,
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/amazon_agent",
+    database_url: str = "sqlite+pysqlite:///./amazon_agent.db",
     feishu_enabled: bool = True,
 ) -> FastAPI:
     session_factory = build_session_factory(database_url)
@@ -69,6 +87,16 @@ def create_app(
     ensure_sqlite_dev_schema(session_factory.kw["bind"])
 
     app = FastAPI(title="Amazon Agent MVP", version="0.1.0")
+
+    # 添加 CORS 支持
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -579,6 +607,93 @@ def create_app(
             task.config = payload.config
 
         return {"success": True, "task": task.to_dict()}
+
+    # ==================== Chrome 插件数据接收 ====================
+
+    @app.post("/api/chrome/submit")
+    async def submit_chrome_data(request: Request) -> dict:
+        """接收 Chrome 插件提取的商品数据"""
+        try:
+            body = await request.json()
+            title = body.get("title", "")
+            price_raw = body.get("price", "")
+            rating_raw = body.get("rating", "")
+            review_count_raw = body.get("review_count", "")
+            bullets = body.get("bullets", [])
+            url = body.get("url", "")
+            asin = body.get("asin", "")
+            reviews = body.get("reviews", [])
+
+            # 解析价格
+            price_str = price_raw.replace("$", "").replace(",", "").strip()
+            try:
+                price = float(price_str) if price_str else 0
+            except ValueError:
+                price = 0
+
+            # 解析评分
+            rating_str = rating_raw.split()[0] if rating_raw else "0"
+            try:
+                rating = float(rating_str) if rating_str else 0
+            except ValueError:
+                rating = 0
+
+            # 解析评论数
+            review_str = review_count_raw.replace(",", "").split()[0] if review_count_raw else "0"
+            try:
+                review_count = int(review_str) if review_str else 0
+            except ValueError:
+                review_count = 0
+
+            # 保存到数据库
+            with session_factory() as session:
+                if asin:
+                    existing = session.scalar(
+                        select(SkuMaster).where(SkuMaster.asin == asin)
+                    )
+
+                    if not existing:
+                        new_sku = SkuMaster(
+                            sku=asin,
+                            asin=asin,
+                            platform_link=url,
+                            store="Amazon",
+                            marketplace="US",
+                            product_category="",
+                            lifecycle="new",
+                        )
+                        session.add(new_sku)
+                        session.commit()
+
+            return {
+                "success": True,
+                "message": "数据已保存",
+                "asin": asin,
+                "price": price,
+                "rating": rating,
+                "review_count": review_count,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/chrome/products")
+    def get_chrome_products() -> dict:
+        """获取通过 Chrome 插件提交的商品列表"""
+        with session_factory() as session:
+            skus = session.scalars(
+                select(SkuMaster).where(SkuMaster.store == "Amazon").limit(50)
+            ).all()
+
+            products = []
+            for sku in skus:
+                products.append({
+                    "asin": sku.asin or sku.sku,
+                    "title": sku.sku,
+                    "url": sku.platform_link or "",
+                    "marketplace": sku.marketplace or "US",
+                })
+
+            return {"products": products}
 
     return app
 

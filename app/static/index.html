@@ -65,6 +65,12 @@
               <svg class="nav-section-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="nav-section-items">
+              <a class="nav-item" href="#ai-selection" data-page="ai-selection">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                </span>
+                AI 选品
+              </a>
               <a class="nav-item" href="#chat" data-page="chat">
                 <span class="nav-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -432,6 +438,109 @@
               </div>
             </article>
           </section>
+        </div>
+
+        <!-- ========== 页面：AI 选品 ========== -->
+        <div class="page" id="page-ai-selection" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">AI Selection</span>
+              <h2>AI 选品分析</h2>
+            </div>
+            <div class="heading-actions">
+              <button id="refresh-products" class="ghost-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                刷新
+              </button>
+              <button id="analyze-selected" class="primary-button" type="button" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                AI 分析选中商品
+              </button>
+            </div>
+          </section>
+
+          <div class="ai-selection-content">
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                </div>
+                <div>
+                  <span class="stat-label">已采集商品</span>
+                  <span class="stat-value" id="total-products">0</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+                <div>
+                  <span class="stat-label">已分析</span>
+                  <span class="stat-value" id="analyzed-count">0</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div>
+                  <span class="stat-label">推荐选品</span>
+                  <span class="stat-value" id="recommended-count">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 商品列表 -->
+            <div class="panel">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                  Chrome 插件采集商品
+                </h2>
+                <span class="heading-hint">通过 Chrome 插件从 Amazon 页面采集的商品数据</span>
+              </div>
+              <div class="table-wrap">
+                <table id="products-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <input type="checkbox" id="select-all" />
+                      </th>
+                      <th>ASIN</th>
+                      <th>商品标题</th>
+                      <th>价格</th>
+                      <th>评分</th>
+                      <th>评论数</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-body">
+                    <tr>
+                      <td colspan="7" class="empty-state">
+                        <div class="empty-icon">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                        </div>
+                        <p>暂无采集数据</p>
+                        <p class="empty-hint">请使用 Chrome 插件在 Amazon 商品页面采集数据</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- AI 分析结果 -->
+            <div class="panel" id="analysis-result" style="display:none">
+              <div class="section-heading">
+                <h2>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  AI 分析结果
+                </h2>
+              </div>
+              <div id="analysis-content"></div>
+            </div>
+          </div>
         </div>
 
         <!-- ========== 页面：AI 助手 ========== -->
