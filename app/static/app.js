@@ -1502,9 +1502,9 @@ function renderProducts(products) {
       <td class="product-title-cell">
         ${escapeHtml(product.title || product.asin || "-")}
       </td>
-      <td>${escapeHtml(product.price || "-")}</td>
-      <td>${escapeHtml(product.rating || "-")}</td>
-      <td>${escapeHtml(product.review_count || "-")}</td>
+      <td>${product.price ? "$" + product.price.toFixed(2) : "-"}</td>
+      <td>${product.rating ? product.rating.toFixed(1) + " ★" : "-"}</td>
+      <td>${product.review_count ? product.review_count.toLocaleString() : "-"}</td>
       <td>
         <a href="${escapeHtml(product.url || "#")}" target="_blank" class="product-link">
           查看商品

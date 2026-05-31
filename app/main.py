@@ -652,10 +652,22 @@ def create_app(
                         select(SkuMaster).where(SkuMaster.asin == asin)
                     )
 
-                    if not existing:
+                    if existing:
+                        # 更新已有记录
+                        existing.title = title or existing.title
+                        existing.price = price if price else existing.price
+                        existing.rating = rating if rating else existing.rating
+                        existing.review_count = review_count if review_count else existing.review_count
+                        existing.platform_link = url or existing.platform_link
+                    else:
+                        # 创建新记录
                         new_sku = SkuMaster(
                             sku=asin,
                             asin=asin,
+                            title=title,
+                            price=price,
+                            rating=rating,
+                            review_count=review_count,
                             platform_link=url,
                             store="Amazon",
                             marketplace="US",
@@ -663,7 +675,8 @@ def create_app(
                             lifecycle="new",
                         )
                         session.add(new_sku)
-                        session.commit()
+
+                    session.commit()
 
             return {
                 "success": True,
@@ -688,7 +701,10 @@ def create_app(
             for sku in skus:
                 products.append({
                     "asin": sku.asin or sku.sku,
-                    "title": sku.sku,
+                    "title": sku.title or sku.asin or sku.sku,
+                    "price": sku.price or 0,
+                    "rating": sku.rating or 0,
+                    "review_count": sku.review_count or 0,
                     "url": sku.platform_link or "",
                     "marketplace": sku.marketplace or "US",
                 })
