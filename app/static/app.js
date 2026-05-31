@@ -1786,37 +1786,68 @@ async function analyzeSelectedProducts() {
     analyzeBtn.disabled = true;
     analyzeBtn.innerHTML = '<span class="loading"></span>分析中...';
 
-    // 模拟分析结果（实际应调用后端 API）
+    // 调用后端 AI 分析接口
+    const response = await fetch("/api/chrome/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asins: Array.from(selectedProducts) })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "分析失败");
+    }
+
+    const a = data.analysis;
+    const scoreClass = a.score >= 80 ? "good" : a.score >= 60 ? "warning" : "bad";
+
     analysisResult.style.display = "block";
     analysisContent.innerHTML = `
       <div class="analysis-card">
-        <h4>选品分析报告</h4>
-        <p>已分析 ${selectedProducts.size} 个商品</p>
+        <h4>AI 选品分析报告</h4>
+        <p>已分析 ${data.product_count} 个商品</p>
         <div style="margin-top: 16px;">
-          <div class="analysis-score good">推荐指数: 85/100</div>
+          <div class="analysis-score ${scoreClass}">推荐指数: ${a.score}/100</div>
         </div>
         <div style="margin-top: 16px;">
-          <strong>分析摘要：</strong>
-          <ul style="margin-top: 8px; padding-left: 20px;">
-            <li>平均评分 4.3 星，高于行业平均水平</li>
-            <li>价格区间 $15-$50，竞争适中</li>
-            <li>评论数量充足，市场验证充分</li>
-            <li>建议关注差评中的产品质量问题</li>
+          <strong>总结：</strong>
+          <p style="margin-top: 8px;">${escapeHtml(a.summary || "")}</p>
+        </div>
+        <div style="margin-top: 12px;">
+          <strong>市场潜力：</strong>
+          <p style="margin-top: 4px;">${escapeHtml(a.market_potential || "")}</p>
+        </div>
+        <div style="margin-top: 12px;">
+          <strong>竞争分析：</strong>
+          <p style="margin-top: 4px;">${escapeHtml(a.competition || "")}</p>
+        </div>
+        <div style="margin-top: 12px;">
+          <strong>利润建议：</strong>
+          <p style="margin-top: 4px;">${escapeHtml(a.profit_advice || "")}</p>
+        </div>
+        ${a.risks && a.risks.length > 0 ? `
+        <div style="margin-top: 12px;">
+          <strong>风险提示：</strong>
+          <ul style="margin-top: 4px; padding-left: 20px;">
+            ${a.risks.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
           </ul>
         </div>
-      </div>
-      <div class="analysis-card warning">
-        <h4>风险提示</h4>
-        <ul style="padding-left: 20px;">
-          <li>部分商品退货率较高，需关注</li>
-          <li>竞争激烈，建议差异化定位</li>
-        </ul>
+        ` : ""}
+        ${a.suggestions && a.suggestions.length > 0 ? `
+        <div style="margin-top: 12px;">
+          <strong>操作建议：</strong>
+          <ul style="margin-top: 4px; padding-left: 20px;">
+            ${a.suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join("")}
+          </ul>
+        </div>
+        ` : ""}
       </div>
     `;
 
     // 更新统计
-    document.getElementById("analyzed-count").textContent = selectedProducts.size;
-    document.getElementById("recommended-count").textContent = Math.floor(selectedProducts.size * 0.6);
+    document.getElementById("analyzed-count").textContent = data.product_count;
+    document.getElementById("recommended-count").textContent = a.score >= 70 ? data.product_count : 0;
 
   } catch (error) {
     alert("分析失败: " + error.message);

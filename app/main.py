@@ -764,6 +764,108 @@ def create_app(
 
             return {"products": products}
 
+    # ==================== AI 商品分析 ====================
+
+    @app.post("/api/chrome/analyze")
+    async def analyze_products(request: Request) -> dict:
+        """AI 分析选中的商品"""
+        try:
+            body = await request.json()
+            asins = body.get("asins", [])
+
+            # 获取商品数据
+            products = []
+            with session_factory() as session:
+                for asin in asins:
+                    sku = session.scalar(
+                        select(SkuMaster).where(SkuMaster.asin == asin)
+                    )
+                    if sku:
+                        products.append({
+                            "asin": sku.asin,
+                            "title": sku.title or "",
+                            "price": sku.price or 0,
+                            "rating": sku.rating or 0,
+                            "review_count": sku.review_count or 0,
+                        })
+
+            if not products:
+                return {"success": False, "error": "未找到商品数据"}
+
+            # 构建分析提示词
+            product_info = "\n".join([
+                f"- ASIN: {p['asin']}, 标题: {p['title']}, 价格: ${p['price']}, 评分: {p['rating']}★, 评论数: {p['review_count']}"
+                for p in products
+            ])
+
+            prompt = f"""你是一位资深亚马逊选品专家。请分析以下商品数据，给出专业的选品建议。
+
+商品数据：
+{product_info}
+
+请从以下维度分析并给出结论：
+1. 市场潜力（价格区间、需求量）
+2. 竞争程度（评分分布、评论数量）
+3. 利润空间（定价建议）
+4. 风险提示（退货率、差评关键词）
+5. 综合推荐指数（0-100分）
+
+请用简洁的中文回答，使用 JSON 格式返回：
+{{
+  "score": 推荐指数,
+  "summary": "一句话总结",
+  "market_potential": "市场潜力分析",
+  "competition": "竞争程度分析",
+  "profit_advice": "利润建议",
+  "risks": ["风险1", "风险2"],
+  "suggestions": ["建议1", "建议2"]
+}}"""
+
+            # 调用 AI 分析
+            from openai import OpenAI
+            client = OpenAI(
+                api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+                base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            )
+
+            response = client.chat.completions.create(
+                model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+                messages=[
+                    {"role": "system", "content": "你是亚马逊选品分析专家，返回 JSON 格式的分析结果。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1000,
+            )
+
+            ai_text = response.choices[0].message.content.strip()
+
+            # 解析 JSON
+            import json
+            # 提取 JSON 部分
+            if "```json" in ai_text:
+                ai_text = ai_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in ai_text:
+                ai_text = ai_text.split("```")[1].split("```")[0].strip()
+
+            try:
+                result = json.loads(ai_text)
+            except json.JSONDecodeError:
+                result = {
+                    "score": 70,
+                    "summary": ai_text[:200],
+                    "market_potential": "需要更多数据",
+                    "competition": "中等",
+                    "profit_advice": "建议优化定价",
+                    "risks": ["数据不足"],
+                    "suggestions": ["补充更多商品信息"]
+                }
+
+            return {"success": True, "analysis": result, "product_count": len(products)}
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     return app
 
 
