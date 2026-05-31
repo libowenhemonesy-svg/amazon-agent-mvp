@@ -173,7 +173,10 @@ class ChatGraph:
 
     def _build_graph(self) -> StateGraph:
         """构建聊天图"""
-        from langchain_openai import ChatOpenAI
+        try:
+            from langchain_openai import ChatOpenAI
+        except ModuleNotFoundError:
+            return None
 
         # 创建 LangChain LLM
         if hasattr(self.llm_client, 'api_key'):

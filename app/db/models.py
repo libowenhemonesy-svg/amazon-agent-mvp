@@ -19,6 +19,7 @@ class SkuMaster(Base):
     price: Mapped[float] = mapped_column(Float, default=0)
     rating: Mapped[float] = mapped_column(Float, default=0)
     review_count: Mapped[int] = mapped_column(Integer, default=0)
+    main_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
     platform_link: Mapped[str | None] = mapped_column(String(512), nullable=True)
     store: Mapped[str | None] = mapped_column(String(128), nullable=True)
     marketplace: Mapped[str | None] = mapped_column(String(32), nullable=True)

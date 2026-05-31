@@ -19,6 +19,7 @@ from app.agents.chat_graph import ChatGraph
 from app.agents.tools import ChatTools
 from app.analysis.battlefield import BattlefieldAnalyzer
 from app.analysis.diagnosis import DiagnosisAnalyzer
+from app.analysis.product_research import ProductResearchAnalyzer
 from app.automation.scheduler import AutomationScheduler, AutomationTask, TaskType, TaskStatus, init_default_tasks, scheduler
 from app.automation.handlers import handle_daily_analysis, handle_data_sync, handle_competitor_monitor
 from app.integrations.eccang.client import EccangClient
@@ -62,6 +63,12 @@ class ChatRequest(BaseModel):
     conversation_id: str = "default"
 
 
+class ProductResearchRequest(BaseModel):
+    keyword: str
+    marketplace: str = "US"
+    category: str = "all"
+
+
 class ChromeProductData(BaseModel):
     """Chrome 插件提取的商品数据"""
     title: str = ""
@@ -81,6 +88,7 @@ def create_app(
     *,
     database_url: str = "sqlite+pysqlite:///./amazon_agent.db",
     feishu_enabled: bool = True,
+    product_research_ai_enabled: bool = True,
 ) -> FastAPI:
     session_factory = build_session_factory(database_url)
     Base.metadata.create_all(session_factory.kw["bind"])
@@ -479,6 +487,7 @@ def create_app(
 
     battlefield_analyzer = BattlefieldAnalyzer()
     diagnosis_analyzer = DiagnosisAnalyzer()
+    product_research_analyzer = ProductResearchAnalyzer()
 
     @app.get("/api/battlefield/analyze")
     def analyze_battlefield(asin: str, marketplace: str = "US") -> dict:
@@ -503,6 +512,46 @@ def create_app(
         """获取诊断报告"""
         # 从数据库获取已生成的报告
         return {"asin": asin, "message": "请先运行诊断"}
+
+    @app.post("/api/selection/research")
+    def run_product_research(
+        payload: ProductResearchRequest,
+        session: Session = Depends(get_session),
+    ) -> dict:
+        """基于 Chrome 采集商品池运行关键词选品研究。"""
+        keyword = payload.keyword.strip()
+        if not keyword:
+            raise HTTPException(status_code=400, detail="关键词不能为空")
+
+        marketplace = (payload.marketplace or "US").upper()
+        category = payload.category or "all"
+        rows = session.scalars(select(SkuMaster).where(SkuMaster.store == "Amazon")).all()
+        competitors = []
+        for sku in rows:
+            row_marketplace = (sku.marketplace or "US").upper()
+            if row_marketplace != marketplace:
+                continue
+            if category != "all" and (sku.product_category or "").lower() != category.lower():
+                continue
+            competitors.append({
+                "sku": sku.sku,
+                "asin": sku.asin or sku.sku,
+                "title": sku.title or sku.asin or sku.sku,
+                "price": sku.price or 0,
+                "rating": sku.rating or 0,
+                "review_count": sku.review_count or 0,
+                "url": sku.platform_link or "",
+                "marketplace": row_marketplace,
+                "category": sku.product_category or "",
+            })
+
+        return product_research_analyzer.analyze(
+            keyword=keyword,
+            marketplace=marketplace,
+            category=category,
+            competitors=competitors,
+            llm_client=build_llm_client(os.environ) if product_research_ai_enabled else None,
+        )
 
     # ==================== 自动化任务 ====================
 
@@ -620,6 +669,7 @@ def create_app(
             rating_raw = body.get("rating", "")
             review_count_raw = body.get("review_count", "")
             bullets = body.get("bullets", [])
+            image = body.get("image", "")
             url = body.get("url", "")
             asin = body.get("asin", "")
             reviews = body.get("reviews", [])
@@ -658,6 +708,7 @@ def create_app(
                         existing.price = price if price else existing.price
                         existing.rating = rating if rating else existing.rating
                         existing.review_count = review_count if review_count else existing.review_count
+                        existing.main_image = image or existing.main_image
                         existing.platform_link = url or existing.platform_link
                     else:
                         # 创建新记录
@@ -668,6 +719,7 @@ def create_app(
                             price=price,
                             rating=rating,
                             review_count=review_count,
+                            main_image=image,
                             platform_link=url,
                             store="Amazon",
                             marketplace="US",
@@ -705,6 +757,7 @@ def create_app(
                     "price": sku.price or 0,
                     "rating": sku.rating or 0,
                     "review_count": sku.review_count or 0,
+                    "main_image": sku.main_image or "",
                     "url": sku.platform_link or "",
                     "marketplace": sku.marketplace or "US",
                 })

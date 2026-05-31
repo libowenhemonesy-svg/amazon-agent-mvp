@@ -4,6 +4,7 @@ const endpoints = {
   metrics: "/metrics/daily",
   run: "/jobs/daily-run",
   demo: "/demo/load-sample",
+  selectionResearch: "/api/selection/research",
 };
 
 const statusOptions = [
@@ -1434,6 +1435,8 @@ function initAISelection() {
   const refreshBtn = document.getElementById("refresh-products");
   const analyzeBtn = document.getElementById("analyze-selected");
   const selectAll = document.getElementById("select-all");
+  const researchBtn = document.getElementById("run-selection-research");
+  const keywordInput = document.getElementById("selection-keyword");
 
   if (refreshBtn) {
     refreshBtn.addEventListener("click", loadChromeProducts);
@@ -1446,6 +1449,217 @@ function initAISelection() {
   if (selectAll) {
     selectAll.addEventListener("change", toggleSelectAll);
   }
+
+  if (researchBtn) {
+    researchBtn.addEventListener("click", runProductResearch);
+  }
+
+  if (keywordInput) {
+    keywordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runProductResearch();
+      }
+    });
+  }
+}
+
+async function runProductResearch() {
+  const keywordInput = document.getElementById("selection-keyword");
+  const marketplaceSelect = document.getElementById("selection-marketplace");
+  const categorySelect = document.getElementById("selection-category");
+  const button = document.getElementById("run-selection-research");
+  const progress = document.getElementById("research-progress");
+  const result = document.getElementById("product-research-result");
+  const keyword = keywordInput.value.trim();
+
+  if (!keyword) {
+    alert("请输入关键词");
+    keywordInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>研究中...';
+  progress.style.display = "block";
+  result.style.display = "none";
+  result.innerHTML = "";
+
+  try {
+    const data = await requestJson(endpoints.selectionResearch, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword,
+        marketplace: marketplaceSelect.value,
+        category: categorySelect.value,
+      }),
+    });
+    renderProductResearch(data);
+    document.getElementById("analyzed-count").textContent = data.market_overview.sample_size;
+    document.getElementById("recommended-count").textContent = data.decision.status === "no_go" ? "0" : "1";
+  } catch (error) {
+    result.style.display = "block";
+    result.innerHTML = `<div class="research-error">${escapeHtml(error.message)}</div>`;
+  } finally {
+    progress.style.display = "none";
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      开始研究
+    `;
+  }
+}
+
+function renderProductResearch(data) {
+  const result = document.getElementById("product-research-result");
+  const overview = data.market_overview;
+  const pricing = data.pricing_advice;
+  const decision = data.decision;
+  const decisionClass = decision.status === "go" ? "good" : decision.status === "cautious" ? "warning" : "bad";
+
+  result.style.display = "grid";
+  result.innerHTML = `
+    ${overview.sample_note ? `<div class="research-sample-note">${escapeHtml(overview.sample_note)}</div>` : ""}
+    <section class="research-section">
+      <div class="research-section-title">
+        <h3>市场概览</h3>
+        <span>基于 “${escapeHtml(data.keyword)}” 分析</span>
+      </div>
+      <div class="research-overview-grid">
+        ${renderOverviewCard("月销量估算", formatNumber(overview.monthly_sales_estimate), "件/月", "sales")}
+        ${renderOverviewCard("平均售价", formatMoney(overview.avg_price), "采集均价", "price")}
+        ${renderOverviewCard("机会评分", `${overview.opportunity_score}/10`, `竞争度：${overview.competition}`, "score")}
+        ${renderOverviewCard("竞品样本", `${overview.sample_size}`, `匹配 ${overview.matched_count} / 池 ${overview.total_competitor_pool}`, "sample")}
+      </div>
+    </section>
+
+    <section class="research-section">
+      <div class="research-section-title">
+        <h3>蓝海关键词库</h3>
+        <span>${data.keywords.length} 个关键词</span>
+      </div>
+      <div class="table-wrap research-keyword-table">
+        <table>
+          <thead>
+            <tr>
+              <th>关键词</th>
+              <th>搜索量估算</th>
+              <th>竞争度</th>
+              <th>机会评分</th>
+              <th>趋势</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.keywords.map(renderResearchKeywordRow).join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="research-section">
+      <div class="research-section-title">
+        <h3>TOP 竞品分析</h3>
+        <span>${data.competitors.length} 款竞品</span>
+      </div>
+      <div class="research-competitor-grid">
+        ${data.competitors.length ? data.competitors.map(renderResearchCompetitorCard).join("") : '<p class="empty-state">暂无采集竞品，请先用 Chrome 插件采集 Amazon 商品。</p>'}
+      </div>
+    </section>
+
+    <section class="research-section pricing-advice">
+      <div class="research-section-title">
+        <h3>成本、定价、利润区间</h3>
+      </div>
+      <div class="pricing-grid">
+        <div><span>目标售价</span><strong>${formatMoney(pricing.target_price_min)} - ${formatMoney(pricing.target_price_max)}</strong></div>
+        <div><span>成本上限</span><strong>${formatMoney(pricing.cost_min)} - ${formatMoney(pricing.cost_max)}</strong></div>
+        <div><span>利润区间</span><strong>${formatMoney(pricing.profit_min)} - ${formatMoney(pricing.profit_max)}</strong></div>
+        <div><span>毛利率</span><strong>${pricing.margin_min}% - ${pricing.margin_max}%</strong></div>
+      </div>
+      <ul class="pricing-notes">${pricing.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
+    </section>
+
+    <section class="research-report ${decisionClass}">
+      <div class="research-report-header">
+        <div>
+          <h3>AI 选品决策报告</h3>
+          <span>${data.generated_by_ai ? "DeepSeek 润色生成" : "规则模型生成"}</span>
+        </div>
+        <strong>${escapeHtml(decision.label)}</strong>
+      </div>
+      <p>${escapeHtml(data.report)}</p>
+      <div class="decision-lists">
+        <div>
+          <h4>判断依据</h4>
+          <ul>${decision.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul>
+        </div>
+        <div>
+          <h4>下一步</h4>
+          <ul>${decision.next_steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderOverviewCard(label, value, meta, type) {
+  return `
+    <article class="research-overview-card ${type}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(meta)}</small>
+    </article>
+  `;
+}
+
+function renderResearchKeywordRow(keyword) {
+  return `
+    <tr>
+      <td><strong>${escapeHtml(keyword.keyword)}</strong></td>
+      <td>${formatNumber(keyword.search_volume)}</td>
+      <td><span class="competition-pill ${competitionClass(keyword.competition)}">${escapeHtml(keyword.competition)}</span></td>
+      <td>${keyword.opportunity_score}/10</td>
+      <td>${escapeHtml(keyword.trend)}</td>
+    </tr>
+  `;
+}
+
+function renderResearchCompetitorCard(competitor) {
+  return `
+    <article class="research-competitor-card">
+      <div class="competitor-card-body">
+        <div class="competitor-thumb">${escapeHtml((competitor.title || competitor.asin || "-").slice(0, 1).toUpperCase())}</div>
+        <div>
+          <h4>${escapeHtml(competitor.title)}</h4>
+          <div class="competitor-meta">
+            <strong>${formatMoney(competitor.price)}</strong>
+            <span>${competitor.rating ? competitor.rating.toFixed(1) : "0.0"} ★</span>
+            <span>${formatNumber(competitor.review_count)} 评论</span>
+          </div>
+        </div>
+      </div>
+      <div class="competitor-card-footer">
+        <span>月销估算 ${formatNumber(competitor.estimated_monthly_sales)}</span>
+        ${competitor.badge ? `<em>${escapeHtml(competitor.badge)}</em>` : ""}
+        ${competitor.url ? `<a href="${escapeHtml(competitor.url)}" target="_blank" rel="noopener">查看</a>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function competitionClass(value) {
+  if (value === "低") return "low";
+  if (value === "中") return "medium";
+  return "high";
+}
+
+function formatMoney(value) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("zh-CN");
 }
 
 async function loadChromeProducts() {
@@ -1495,6 +1709,9 @@ function renderProducts(products) {
     <tr>
       <td>
         <input type="checkbox" class="product-checkbox" data-asin="${escapeHtml(product.asin || '')}" />
+      </td>
+      <td>
+        ${product.main_image ? `<img src="${escapeHtml(product.main_image)}" class="product-thumb" />` : '<span class="no-image">无图片</span>'}
       </td>
       <td>
         <span class="asin-text">${escapeHtml(product.asin || "-")}</span>

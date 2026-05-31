@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Amazon Agent 运营台</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=selection-research-20260531" />
   </head>
   <body>
     <div class="app-shell">
@@ -460,6 +460,55 @@
           </section>
 
           <div class="ai-selection-content">
+            <!-- 选品研究 -->
+            <section class="research-panel">
+              <div class="research-panel-header">
+                <div>
+                  <span class="eyebrow">Product Research</span>
+                  <h3>选品研究</h3>
+                  <p>输入关键词，基于 Chrome 插件采集的 Amazon 商品池生成蓝海关键词库、利润建议和选品决策报告</p>
+                </div>
+                <span class="research-source-badge">Chrome 采集数据 + 本地估算模型</span>
+              </div>
+              <div class="research-toolbar">
+                <div class="research-input-wrap">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input id="selection-keyword" type="search" placeholder="输入关键词，例如 portable fan" autocomplete="off" />
+                </div>
+                <select id="selection-marketplace" aria-label="选择站点">
+                  <option value="US">US 美国站</option>
+                  <option value="UK">UK 英国站</option>
+                  <option value="DE">DE 德国站</option>
+                  <option value="JP">JP 日本站</option>
+                  <option value="CA">CA 加拿大站</option>
+                </select>
+                <select id="selection-category" aria-label="选择类目">
+                  <option value="all">全部类目</option>
+                  <option value="Kitchen">Kitchen</option>
+                  <option value="Home">Home</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Beauty">Beauty</option>
+                </select>
+                <button id="run-selection-research" class="primary-button" type="button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  开始研究
+                </button>
+              </div>
+              <div id="research-progress" class="research-progress" style="display:none" aria-live="polite">
+                <div class="research-progress-header">
+                  <strong>分析中</strong>
+                  <span>正在筛选竞品、扩展蓝海关键词并生成利润建议</span>
+                </div>
+                <div class="research-steps">
+                  <span>抓取采集商品池</span>
+                  <span>分析市场概览</span>
+                  <span>生成蓝海关键词</span>
+                  <span>输出决策报告</span>
+                </div>
+              </div>
+              <div id="product-research-result" class="research-result" style="display:none"></div>
+            </section>
+
             <!-- 统计卡片 -->
             <div class="stats-grid">
               <div class="stat-card">
@@ -507,6 +556,7 @@
                       <th>
                         <input type="checkbox" id="select-all" />
                       </th>
+                      <th>图片</th>
                       <th>ASIN</th>
                       <th>商品标题</th>
                       <th>价格</th>
@@ -517,7 +567,7 @@
                   </thead>
                   <tbody id="products-body">
                     <tr>
-                      <td colspan="7" class="empty-state">
+                      <td colspan="8" class="empty-state">
                         <div class="empty-icon">
                           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
                         </div>
@@ -1053,6 +1103,6 @@
 
       </main>
     </div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=selection-research-20260531"></script>
   </body>
 </html>

@@ -29,9 +29,71 @@ def test_frontend_static_assets_are_served():
     assert "runAnalysis" in js_response.text
     assert "loadDemo" in js_response.text
     assert "feishuStatus" in js_response.text
+    assert "runProductResearch" in js_response.text
     assert css_response.status_code == 200
     assert ".dashboard" in css_response.text
     assert ".bar-row" in css_response.text
+    assert ".research-overview-grid" in css_response.text
+
+
+def test_frontend_dashboard_contains_product_research_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "selection-keyword" in response.text
+    assert "开始研究" in response.text
+    assert "蓝海关键词库" in response.text
+
+
+def test_product_research_endpoint_uses_chrome_products():
+    app = create_app(
+        database_url="sqlite+pysqlite:///:memory:",
+        feishu_enabled=False,
+        product_research_ai_enabled=False,
+    )
+    client = TestClient(app)
+
+    submit_response = client.post(
+        "/api/chrome/submit",
+        json={
+            "asin": "B0FAN001",
+            "title": "Portable Fan Rechargeable Mini Handheld Fan",
+            "price": "$29.99",
+            "rating": "4.6 out of 5 stars",
+            "review_count": "380 ratings",
+            "url": "https://amazon.example/B0FAN001",
+        },
+    )
+    assert submit_response.status_code == 200
+
+    response = client.post(
+        "/api/selection/research",
+        json={"keyword": "portable fan", "marketplace": "US", "category": "all"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["market_overview"]["sample_size"] == 1
+    assert payload["competitors"][0]["asin"] == "B0FAN001"
+    assert payload["keywords"]
+    assert payload["pricing_advice"]["target_price_min"] > 0
+    assert payload["decision"]["status"] in {"go", "cautious", "no_go"}
+    assert payload["generated_by_ai"] is False
+
+
+def test_product_research_endpoint_rejects_empty_keyword():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/selection/research",
+        json={"keyword": "   ", "marketplace": "US", "category": "all"},
+    )
+
+    assert response.status_code == 400
 
 
 def test_demo_sample_endpoint_loads_sample_data_and_runs_analysis():
