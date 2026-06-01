@@ -1446,6 +1446,11 @@ function initAISelection() {
     analyzeBtn.addEventListener("click", analyzeSelectedProducts);
   }
 
+  const deleteBtn = document.getElementById("delete-selected");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", deleteSelectedProducts);
+  }
+
   if (selectAll) {
     selectAll.addEventListener("change", toggleSelectAll);
   }
@@ -1752,15 +1757,51 @@ function toggleSelectAll(event) {
 function updateSelectedCount() {
   const checkboxes = document.querySelectorAll(".product-checkbox:checked");
   const analyzeBtn = document.getElementById("analyze-selected");
+  const deleteBtn = document.getElementById("delete-selected");
 
   selectedProducts.clear();
   checkboxes.forEach((cb) => {
     selectedProducts.add(cb.dataset.asin);
   });
 
+  const count = selectedProducts.size;
+
   if (analyzeBtn) {
-    analyzeBtn.disabled = selectedProducts.size === 0;
-    analyzeBtn.textContent = selectedProducts.size > 0 ? `AI 分析选中商品 (${selectedProducts.size})` : "AI 分析选中商品";
+    analyzeBtn.disabled = count === 0;
+    analyzeBtn.textContent = count > 0 ? `AI 分析选中商品 (${count})` : "AI 分析选中商品";
+  }
+
+  if (deleteBtn) {
+    deleteBtn.disabled = count === 0;
+    deleteBtn.textContent = count > 0 ? `删除选中商品 (${count})` : "删除选中商品";
+  }
+}
+
+async function deleteSelectedProducts() {
+  if (selectedProducts.size === 0) {
+    alert("请先选择要删除的商品");
+    return;
+  }
+
+  if (!confirm(`确定要删除选中的 ${selectedProducts.size} 个商品吗？`)) return;
+
+  try {
+    const response = await fetch("/api/chrome/products/delete-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asins: Array.from(selectedProducts) })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      selectedProducts.clear();
+      loadChromeProducts();
+    } else {
+      alert("删除失败: " + (data.error || "未知错误"));
+    }
+  } catch (error) {
+    alert("删除失败: " + error.message);
   }
 }
 
@@ -1768,8 +1809,23 @@ async function deleteProduct(asin) {
   if (!asin) return;
   if (!confirm(`确定要删除 ASIN: ${asin} 吗？`)) return;
 
-  // TODO: 实现删除功能
-  alert("删除功能开发中");
+  try {
+    const response = await fetch(`/api/chrome/products/${asin}`, {
+      method: "DELETE"
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      // 从选中集合移除
+      selectedProducts.delete(asin);
+      // 重新加载列表
+      loadChromeProducts();
+    } else {
+      alert("删除失败: " + (data.error || "未知错误"));
+    }
+  } catch (error) {
+    alert("删除失败: " + error.message);
+  }
 }
 
 async function analyzeSelectedProducts() {

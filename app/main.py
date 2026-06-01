@@ -764,6 +764,54 @@ def create_app(
 
             return {"products": products}
 
+    @app.delete("/api/chrome/products/{asin}")
+    def delete_chrome_product(asin: str) -> dict:
+        """删除 Chrome 插件采集的商品"""
+        try:
+            with session_factory() as session:
+                sku = session.scalar(
+                    select(SkuMaster).where(SkuMaster.asin == asin)
+                )
+                if not sku:
+                    return {"success": False, "error": "商品不存在"}
+
+                session.delete(sku)
+                session.commit()
+                return {"success": True, "message": f"已删除 {asin}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.delete("/api/chrome/products")
+    def delete_multiple_products(request: Request) -> dict:
+        """批量删除商品"""
+        # 需要从请求体获取 ASIN 列表
+        # FastAPI 的 DELETE 不支持 Body，改用 POST
+        pass
+
+    @app.post("/api/chrome/products/delete-batch")
+    async def delete_batch_products(request: Request) -> dict:
+        """批量删除商品"""
+        try:
+            body = await request.json()
+            asins = body.get("asins", [])
+            if not asins:
+                return {"success": False, "error": "未选择商品"}
+
+            deleted = 0
+            with session_factory() as session:
+                for asin in asins:
+                    sku = session.scalar(
+                        select(SkuMaster).where(SkuMaster.asin == asin)
+                    )
+                    if sku:
+                        session.delete(sku)
+                        deleted += 1
+                session.commit()
+
+            return {"success": True, "message": f"已删除 {deleted} 个商品", "deleted": deleted}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     # ==================== AI 商品分析 ====================
 
     @app.post("/api/chrome/analyze")
