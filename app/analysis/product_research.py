@@ -228,14 +228,26 @@ class ProductResearchAnalyzer:
                     "asin": competitor.get("asin") or competitor.get("sku") or "-",
                     "title": competitor.get("title") or competitor.get("asin") or "-",
                     "price": round(price, 2),
+                    "has_price": price > 0,
                     "rating": round(rating, 1),
                     "review_count": reviews,
+                    "has_review_count": reviews > 0,
+                    "main_image": competitor.get("main_image") or "",
                     "url": competitor.get("url") or "",
                     "estimated_monthly_sales": self._estimate_competitor_sales(price, rating, reviews),
+                    "data_quality_notes": self._competitor_data_notes(price, reviews),
                     "badge": "Top Pick" if index == 1 else ("价格带参考" if index <= 3 else ""),
                 }
             )
         return cards
+
+    def _competitor_data_notes(self, price: float, reviews: int) -> list[str]:
+        notes = []
+        if price <= 0:
+            notes.append("价格未采集")
+        if reviews <= 0:
+            notes.append("评论数未采集")
+        return notes
 
     def _build_pricing_advice(self, market_overview: dict[str, Any]) -> dict[str, Any]:
         avg_price = market_overview["avg_price"] or 29.99

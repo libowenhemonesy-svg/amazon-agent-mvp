@@ -30,10 +30,16 @@ def test_frontend_static_assets_are_served():
     assert "loadDemo" in js_response.text
     assert "feishuStatus" in js_response.text
     assert "runProductResearch" in js_response.text
+    assert "runListingOptimization" in js_response.text
+    assert "runAdOptimization" in js_response.text
+    assert "runSupplyChainAnalysis" in js_response.text
     assert css_response.status_code == 200
     assert ".dashboard" in css_response.text
     assert ".bar-row" in css_response.text
     assert ".research-overview-grid" in css_response.text
+    assert ".listing-optimizer-grid" in css_response.text
+    assert ".ad-optimizer-grid" in css_response.text
+    assert ".supply-chain-grid" in css_response.text
 
 
 def test_frontend_dashboard_contains_product_research_entry():
@@ -46,6 +52,160 @@ def test_frontend_dashboard_contains_product_research_entry():
     assert "selection-keyword" in response.text
     assert "开始研究" in response.text
     assert "蓝海关键词库" in response.text
+
+
+def test_frontend_dashboard_contains_listing_optimization_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "page-listing-optimization" in response.text
+    assert "Listing 优化" in response.text
+    assert "listing-product-description" in response.text
+
+
+def test_frontend_dashboard_contains_ad_optimization_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "page-ad-optimization" in response.text
+    assert "广告优化" in response.text
+    assert "ad-product-keyword" in response.text
+    assert "生成广告策略" in response.text
+
+
+def test_ad_optimization_endpoint_generates_strategy():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/ads/optimize",
+        json={
+            "product_keyword": "portable blender",
+            "daily_budget": 50,
+            "target_acos": 0.2,
+            "marketplace": "US",
+            "category": "Kitchen",
+            "ad_type": "Sponsored Products",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metrics"]["daily_budget"] == 50
+    assert payload["keyword_bids"]
+    assert payload["negative_keywords"]
+    assert payload["budget_allocation"]["items"]
+    assert payload["dayparting_strategy"]
+    assert payload["report"]
+
+
+def test_ad_optimization_endpoint_rejects_empty_keyword():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/ads/optimize",
+        json={"product_keyword": " ", "daily_budget": 50, "target_acos": 0.2},
+    )
+
+    assert response.status_code == 400
+
+
+def test_frontend_dashboard_contains_supply_chain_analysis_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "page-supply-chain" in response.text
+    assert "供应链分析" in response.text
+    assert "supply-product" in response.text
+    assert "分析供应链" in response.text
+
+
+def test_supply_chain_analysis_endpoint_generates_plan():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/supply-chain/analyze",
+        json={
+            "product": "portable blender",
+            "purchase_quantity": 1200,
+            "marketplace": "US",
+            "logistics_method": "FBA sea freight",
+            "budget": 12000,
+            "category": "Kitchen",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["cost_analysis"]["total_cost"] > 0
+    assert payload["supplier_evaluation"]
+    assert payload["logistics_plan"]["method"] == "FBA sea freight"
+    assert payload["inventory_plan"]["reorder_point_units"] > 0
+    assert payload["risk_controls"]
+    assert payload["report"]
+
+
+def test_supply_chain_analysis_endpoint_rejects_empty_product():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/supply-chain/analyze",
+        json={
+            "product": " ",
+            "purchase_quantity": 1200,
+            "marketplace": "US",
+            "logistics_method": "FBA sea freight",
+            "budget": 12000,
+        },
+    )
+
+    assert response.status_code == 400
+
+
+def test_listing_optimization_endpoint_generates_listing():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/listing/optimize",
+        json={
+            "product_description": "Portable handheld fan with USB rechargeable battery and low noise motor.",
+            "keywords": "portable fan, handheld fan, usb rechargeable fan",
+            "marketplace": "US",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["listing"]["title"]
+    assert len(payload["listing"]["bullets"]) == 5
+    assert payload["quality_score"]["overall_score"] > 0
+    assert len(payload["quality_score"]["dimensions"]) == 8
+    assert payload["keyword_coverage"]["items"]
+
+
+def test_listing_optimization_endpoint_rejects_empty_description():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/listing/optimize",
+        json={"product_description": " ", "keywords": "portable fan", "marketplace": "US"},
+    )
+
+    assert response.status_code == 400
 
 
 def test_product_research_endpoint_uses_chrome_products():
@@ -82,6 +242,29 @@ def test_product_research_endpoint_uses_chrome_products():
     assert payload["pricing_advice"]["target_price_min"] > 0
     assert payload["decision"]["status"] in {"go", "cautious", "no_go"}
     assert payload["generated_by_ai"] is False
+
+
+def test_chrome_submit_parses_localized_price_rating_and_reviews():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    submit_response = client.post(
+        "/api/chrome/submit",
+        json={
+            "asin": "B0AIRPODS",
+            "title": "Apple AirPods Pro 2",
+            "price": "US$189.99",
+            "rating": "4.7 out of 5 stars",
+            "review_count": "85,234 ratings",
+            "url": "https://amazon.example/B0AIRPODS",
+        },
+    )
+
+    assert submit_response.status_code == 200
+    payload = submit_response.json()
+    assert payload["price"] == 189.99
+    assert payload["rating"] == 4.7
+    assert payload["review_count"] == 85234
 
 
 def test_product_research_endpoint_rejects_empty_keyword():

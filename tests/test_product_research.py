@@ -67,3 +67,31 @@ def test_product_research_falls_back_when_no_keyword_match():
     assert result["market_overview"]["sample_note"]
     assert result["competitors"][0]["asin"] == "B0LAMP01"
     assert result["decision"]["reasons"]
+
+
+def test_product_research_marks_missing_competitor_fields():
+    analyzer = ProductResearchAnalyzer()
+
+    result = analyzer.analyze(
+        keyword="kitchen rack",
+        marketplace="US",
+        category="all",
+        competitors=[
+            {
+                "asin": "B0RACK01",
+                "title": "Kitchen Rack Storage Shelf",
+                "price": 0,
+                "rating": 4.6,
+                "review_count": 0,
+                "main_image": "https://example.test/rack.jpg",
+                "url": "",
+                "marketplace": "US",
+            }
+        ],
+    )
+
+    competitor = result["competitors"][0]
+    assert competitor["has_price"] is False
+    assert competitor["has_review_count"] is False
+    assert competitor["main_image"] == "https://example.test/rack.jpg"
+    assert competitor["data_quality_notes"] == ["价格未采集", "评论数未采集"]

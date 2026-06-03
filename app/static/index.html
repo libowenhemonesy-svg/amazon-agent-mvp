@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Amazon Agent 运营台</title>
-    <link rel="stylesheet" href="/static/styles.css?v=selection-research-20260531" />
+    <link rel="stylesheet" href="/static/styles.css?v=supply-chain-20260603" />
   </head>
   <body>
     <div class="app-shell">
@@ -70,6 +70,24 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                 </span>
                 AI 选品
+              </a>
+              <a class="nav-item" href="#listing-optimization" data-page="listing-optimization">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                </span>
+                Listing 优化
+              </a>
+              <a class="nav-item" href="#ad-optimization" data-page="ad-optimization">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V6"/><path d="M16 16v-4"/><path d="M20 8l-4 4-3-3-5 5"/></svg>
+                </span>
+                广告优化
+              </a>
+              <a class="nav-item" href="#supply-chain" data-page="supply-chain">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </span>
+                供应链分析
               </a>
               <a class="nav-item" href="#chat" data-page="chat">
                 <span class="nav-icon">
@@ -597,6 +615,109 @@
           </div>
         </div>
 
+        <!-- ========== 页面：Listing 优化 ========== -->
+        <div class="page" id="page-listing-optimization" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Listing Optimization</span>
+              <h2>Listing 优化</h2>
+              <p>输入产品信息和目标关键词，一键生成标题、五点描述、详情页和后台 Search Terms</p>
+            </div>
+            <span class="research-source-badge listing-source-badge">规则生成 + 本地质量评分</span>
+          </section>
+
+          <div class="listing-optimizer-grid">
+            <section class="listing-card listing-generator-card">
+              <div class="listing-card-heading">
+                <div>
+                  <span class="eyebrow">Generator</span>
+                  <h3>Listing 生成器</h3>
+                </div>
+              </div>
+              <label for="listing-product-description">产品描述 *</label>
+              <textarea id="listing-product-description" rows="8" placeholder="例如：Portable handheld fan with USB rechargeable battery, low noise motor, 3 speeds, travel size."></textarea>
+              <label for="listing-keywords">目标关键词</label>
+              <input id="listing-keywords" type="text" placeholder="portable fan, handheld fan, usb rechargeable fan" autocomplete="off" />
+              <label for="listing-competitor-asin">参考竞品 ASIN</label>
+              <input id="listing-competitor-asin" type="text" placeholder="B09XXXXXXX" autocomplete="off" />
+              <label for="listing-marketplace">目标市场</label>
+              <select id="listing-marketplace">
+                <option value="US">US 美国站</option>
+                <option value="UK">UK 英国站</option>
+                <option value="DE">DE 德国站</option>
+                <option value="JP">JP 日本站</option>
+                <option value="CA">CA 加拿大站</option>
+              </select>
+              <button id="generate-listing" class="primary-button listing-generate-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                生成 Listing
+              </button>
+              <div class="listing-template-row" aria-label="快速模板">
+                <button type="button" data-template="Portable handheld fan with USB rechargeable battery, low noise motor, 3 speeds, compact travel size, and desk-friendly stand.">便携风扇</button>
+                <button type="button" data-template="Kitchen storage organizer with durable material, space-saving structure, easy-clean surface, and multi-purpose daily use.">家居收纳</button>
+                <button type="button" data-template="Beauty accessory set with skin-friendly material, compact packaging, practical daily use, and gift-ready presentation.">美妆配件</button>
+              </div>
+              <div id="listing-status" class="listing-status" aria-live="polite"></div>
+            </section>
+
+            <section class="listing-card listing-output-card">
+              <div class="listing-card-heading">
+                <div>
+                  <span class="eyebrow">Content</span>
+                  <h3>Listing 内容</h3>
+                </div>
+                <span id="listing-title-count" class="listing-count">0/200</span>
+              </div>
+              <div class="listing-output-block">
+                <h4>标题</h4>
+                <div id="listing-title-output" class="listing-text-box empty">生成后显示标题</div>
+              </div>
+              <div class="listing-output-block">
+                <h4>五点描述</h4>
+                <ol id="listing-bullets-output" class="listing-bullet-list">
+                  <li class="empty">生成后显示五点描述</li>
+                </ol>
+              </div>
+              <div class="listing-output-block">
+                <div class="listing-output-label-row">
+                  <h4>产品详情</h4>
+                  <span id="listing-description-count" class="listing-count">0/2000</span>
+                </div>
+                <div id="listing-description-output" class="listing-text-box empty">生成后显示产品详情</div>
+              </div>
+              <div class="listing-output-block">
+                <h4>后台 Search Terms 推荐词</h4>
+                <div id="listing-search-terms-output" class="listing-term-cloud empty">生成后显示推荐词</div>
+              </div>
+            </section>
+
+            <section class="listing-card listing-score-card">
+              <div class="listing-card-heading">
+                <div>
+                  <span class="eyebrow">Quality</span>
+                  <h3>质量评分</h3>
+                </div>
+              </div>
+              <div class="listing-score-hero">
+                <div>
+                  <span>综合评分</span>
+                  <strong id="listing-quality-score">--</strong>
+                </div>
+                <em id="listing-quality-grade">-</em>
+              </div>
+              <div id="listing-score-dimensions" class="listing-score-dimensions">
+                <p class="empty">生成后显示 8 个维度评分</p>
+              </div>
+              <div class="listing-coverage-section">
+                <h4>关键词覆盖地图</h4>
+                <div id="listing-coverage-map" class="listing-coverage-map">
+                  <p class="empty">生成后显示关键词覆盖位置</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
         <!-- ========== 页面：AI 助手 ========== -->
         <div class="page" id="page-chat" style="display:none">
           <section class="chat-panel is-active" id="chat">
@@ -900,6 +1021,322 @@
           </div>
         </div>
 
+        <!-- ========== 页面：广告优化 ========== -->
+        <div class="page" id="page-ad-optimization" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Ads Optimization</span>
+              <h2>广告优化</h2>
+              <p>输入预算和目标 ACoS，生成关键词出价、否定词、分时投放与预算配比方案</p>
+            </div>
+            <span class="research-source-badge ad-source-badge">本地估算模型</span>
+          </section>
+
+          <div class="ad-optimizer-grid">
+            <section class="ad-card ad-control-card">
+              <div class="ad-card-heading">
+                <div>
+                  <span class="eyebrow">Strategy Builder</span>
+                  <h3>广告策略生成器</h3>
+                </div>
+              </div>
+              <label for="ad-product-keyword">产品关键词 *</label>
+              <input id="ad-product-keyword" type="text" placeholder="portable blender" autocomplete="off" />
+              <div class="ad-field-grid">
+                <div>
+                  <label for="ad-daily-budget">每日预算 $</label>
+                  <input id="ad-daily-budget" type="number" min="1" step="1" value="50" />
+                </div>
+                <div>
+                  <label for="ad-target-acos">目标 ACoS</label>
+                  <select id="ad-target-acos">
+                    <option value="0.15">15%</option>
+                    <option value="0.2" selected>20%</option>
+                    <option value="0.25">25%</option>
+                    <option value="0.3">30%</option>
+                    <option value="0.35">35%</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ad-field-grid">
+                <div>
+                  <label for="ad-type">广告类型</label>
+                  <select id="ad-type">
+                    <option>Sponsored Products</option>
+                    <option>Sponsored Brands</option>
+                    <option>Sponsored Display</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="ad-marketplace">投放市场</label>
+                  <select id="ad-marketplace">
+                    <option value="US">US 美国站</option>
+                    <option value="CA">CA 加拿大站</option>
+                    <option value="UK">UK 英国站</option>
+                    <option value="DE">DE 德国站</option>
+                    <option value="JP">JP 日本站</option>
+                  </select>
+                </div>
+              </div>
+              <label for="ad-category">产品类别</label>
+              <select id="ad-category">
+                <option value="all">全部类目</option>
+                <option value="Kitchen">Kitchen</option>
+                <option value="Home">Home</option>
+                <option value="Beauty">Beauty</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Sports">Sports</option>
+              </select>
+              <button id="generate-ad-strategy" class="primary-button ad-generate-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                生成广告策略
+              </button>
+              <div id="ad-status" class="listing-status" aria-live="polite"></div>
+            </section>
+
+            <section class="ad-card ad-progress-card">
+              <div class="ad-card-heading">
+                <h3>AI 分析进度</h3>
+              </div>
+              <div id="ad-progress-list" class="ad-progress-list">
+                <div><span></span>研究竞品关键词</div>
+                <div><span></span>计算预算与 ACoS 约束</div>
+                <div><span></span>生成出价与否定词</div>
+                <div><span></span>输出投放节奏和风控建议</div>
+              </div>
+            </section>
+
+            <section class="ad-card ad-metrics-card">
+              <div class="ad-card-heading">
+                <h3>核心指标预估</h3>
+              </div>
+              <div id="ad-metrics-grid" class="ad-metrics-grid">
+                <article><span>建议日预算</span><strong>--</strong></article>
+                <article><span>目标 ACoS</span><strong>--</strong></article>
+                <article><span>预估 ROAS</span><strong>--</strong></article>
+                <article><span>基准 CPC</span><strong>--</strong></article>
+              </div>
+            </section>
+          </div>
+
+          <section class="ad-card ad-table-card">
+            <div class="ad-card-heading">
+              <h3>关键词出价建议</h3>
+              <span id="ad-keyword-count" class="listing-count">0 个关键词</span>
+            </div>
+            <div class="ad-table-wrap">
+              <table class="ad-bid-table">
+                <thead>
+                  <tr>
+                    <th>关键词</th>
+                    <th>匹配类型</th>
+                    <th>建议出价</th>
+                    <th>预估 CPC</th>
+                    <th>竞争度</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="ad-keyword-bids">
+                  <tr><td colspan="6">生成后显示关键词出价建议</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="ad-card">
+            <div class="ad-card-heading">
+              <h3>否定关键词推荐</h3>
+              <span id="ad-negative-count" class="listing-count">0 个否定词</span>
+            </div>
+            <div id="ad-negative-keywords" class="ad-negative-keywords empty">生成后显示否定词</div>
+          </section>
+
+          <div class="ad-result-grid">
+            <section class="ad-card">
+              <div class="ad-card-heading">
+                <h3>分时策略</h3>
+              </div>
+              <div id="ad-dayparting-chart" class="ad-dayparting-chart"></div>
+            </section>
+
+            <section class="ad-card">
+              <div class="ad-card-heading">
+                <h3>预算分配</h3>
+              </div>
+              <div id="ad-budget-allocation" class="ad-budget-allocation">
+                <p class="empty">生成后显示 SP / SB / SD 配比</p>
+              </div>
+            </section>
+          </div>
+
+          <section class="ad-card ad-report-card">
+            <div class="ad-report-header">
+              <div>
+                <h3>AI 广告策略建议</h3>
+                <span>基于广告参数和本地估算模型生成</span>
+              </div>
+              <em>规则模型生成</em>
+            </div>
+            <p id="ad-report-text">生成后显示投放节奏、优化方向和风险控制建议。</p>
+            <div class="ad-plan-grid">
+              <div>
+                <h4>投放节奏</h4>
+                <ul id="ad-launch-plan"><li>生成后显示</li></ul>
+              </div>
+              <div>
+                <h4>风险控制</h4>
+                <ul id="ad-risk-controls"><li>生成后显示</li></ul>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========== 页面：供应链分析 ========== -->
+        <div class="page" id="page-supply-chain" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Supply Chain</span>
+              <h2>供应链分析</h2>
+              <p>一站式采购成本、供应商、物流和备货补货方案分析</p>
+            </div>
+            <span class="research-source-badge supply-source-badge">本地估算模型</span>
+          </section>
+
+          <section class="supply-config-card">
+            <div class="supply-section-title">
+              <span></span>
+              <h3>分析配置</h3>
+            </div>
+            <div class="supply-config-grid">
+              <div>
+                <label for="supply-product">产品 *</label>
+                <input id="supply-product" type="text" placeholder="portable blender" autocomplete="off" />
+              </div>
+              <div>
+                <label for="supply-quantity">采购数量</label>
+                <select id="supply-quantity">
+                  <option value="500">500 件</option>
+                  <option value="1200" selected>1000-3000 件</option>
+                  <option value="3000">3000 件以上</option>
+                </select>
+              </div>
+              <div>
+                <label for="supply-marketplace">目标市场</label>
+                <select id="supply-marketplace">
+                  <option value="US">US 美国站</option>
+                  <option value="CA">CA 加拿大站</option>
+                  <option value="UK">UK 英国站</option>
+                  <option value="DE">DE 德国站</option>
+                  <option value="JP">JP 日本站</option>
+                </select>
+              </div>
+              <div>
+                <label for="supply-logistics">物流方式</label>
+                <select id="supply-logistics">
+                  <option value="FBA sea freight" selected>FBA 海运</option>
+                  <option value="FBA air freight">FBA 空运</option>
+                  <option value="Express">商业快递</option>
+                  <option value="Third-party warehouse">海外仓</option>
+                </select>
+              </div>
+              <div>
+                <label for="supply-budget">预算范围</label>
+                <select id="supply-budget">
+                  <option value="5000">$5,000</option>
+                  <option value="12000" selected>$5,000-$15,000</option>
+                  <option value="25000">$15,000-$30,000</option>
+                  <option value="50000">$30,000+</option>
+                </select>
+              </div>
+              <div>
+                <label for="supply-category">产品类别</label>
+                <select id="supply-category">
+                  <option value="all">全部类目</option>
+                  <option value="Kitchen">Kitchen</option>
+                  <option value="Home">Home</option>
+                  <option value="Beauty">Beauty</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Sports">Sports</option>
+                </select>
+              </div>
+            </div>
+            <button id="run-supply-chain" class="primary-button supply-run-button" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              分析供应链
+            </button>
+            <div id="supply-status" class="listing-status" aria-live="polite"></div>
+          </section>
+
+          <section id="supply-empty-state" class="supply-empty-state">
+            <div>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <h3>配置参数后，开始分析供应链</h3>
+            <p>将生成成本分析、供应商评估、物流方案、备货补货逻辑和库存风险控制建议。</p>
+          </section>
+
+          <section id="supply-results" class="supply-results" style="display:none">
+            <div class="supply-chain-grid">
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>成本分析</h3>
+                  <span id="supply-cost-per-unit">--</span>
+                </div>
+                <div id="supply-cost-breakdown" class="supply-cost-breakdown"></div>
+              </article>
+
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>供应商评估</h3>
+                  <strong id="supply-supplier-grade">--</strong>
+                </div>
+                <div id="supply-supplier-score" class="supply-score-hero">--</div>
+                <div id="supply-supplier-dimensions" class="supply-score-list"></div>
+              </article>
+
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>物流方案</h3>
+                  <span id="supply-logistics-label">--</span>
+                </div>
+                <div id="supply-logistics-plan" class="supply-logistics-plan"></div>
+              </article>
+            </div>
+
+            <div class="supply-chain-grid secondary">
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>备货 / 补货逻辑</h3>
+                </div>
+                <div id="supply-inventory-plan" class="supply-metric-list"></div>
+              </article>
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>资金占用与周转</h3>
+                </div>
+                <div id="supply-cash-flow" class="supply-metric-list"></div>
+              </article>
+              <article class="supply-card">
+                <div class="supply-card-heading">
+                  <h3>库存风险控制</h3>
+                </div>
+                <ul id="supply-risk-controls" class="supply-risk-list"></ul>
+              </article>
+            </div>
+
+            <article class="supply-report-card">
+              <div class="supply-report-header">
+                <div>
+                  <h3>AI 供应链顾问建议</h3>
+                  <span>基于采购参数和本地估算模型生成</span>
+                </div>
+                <em>规则模型生成</em>
+              </div>
+              <p id="supply-report-text"></p>
+            </article>
+          </section>
+        </div>
+
         <!-- ========== 页面：广告分析 ========== -->
         <div class="page" id="page-ads-analysis" style="display:none">
           <section class="page-heading">
@@ -1107,6 +1544,6 @@
 
       </main>
     </div>
-    <script src="/static/app.js?v=selection-research-20260531"></script>
+    <script src="/static/app.js?v=supply-chain-20260603"></script>
   </body>
 </html>

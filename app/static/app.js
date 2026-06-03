@@ -5,6 +5,9 @@ const endpoints = {
   run: "/jobs/daily-run",
   demo: "/demo/load-sample",
   selectionResearch: "/api/selection/research",
+  listingOptimize: "/api/listing/optimize",
+  adOptimize: "/api/ads/optimize",
+  supplyChainAnalyze: "/api/supply-chain/analyze",
 };
 
 const statusOptions = [
@@ -114,6 +117,9 @@ const pageTitles = {
   analytics: { title: "风险分析", subtitle: "查看风险等级分布和模块统计" },
   tasks: { title: "异常任务", subtitle: "查看每日简报和异常告警" },
   "ai-selection": { title: "AI 选品", subtitle: "Chrome 插件采集商品 · AI 分析选品" },
+  "listing-optimization": { title: "Listing 优化", subtitle: "标题 · 五点描述 · 产品详情 · Search Terms" },
+  "ad-optimization": { title: "广告优化", subtitle: "预算 · ACoS · 出价 · 否定词 · 分时策略" },
+  "supply-chain": { title: "供应链分析", subtitle: "采购成本 · 供应商 · 物流 · 备货补货" },
   chat: { title: "AI 助手", subtitle: "智能对话查询运营数据" },
   battlefield: { title: "战场地图", subtitle: "竞品分析 · 市场份额 · 关键词洞察" },
   diagnosis: { title: "运营天眼", subtitle: "产品健康度诊断 · 优化建议" },
@@ -503,6 +509,542 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+// ==================== Listing 优化 ====================
+
+function initListingOptimization() {
+  const generateButton = document.getElementById("generate-listing");
+  const descriptionInput = document.getElementById("listing-product-description");
+  const keywordInput = document.getElementById("listing-keywords");
+
+  if (generateButton) {
+    generateButton.addEventListener("click", runListingOptimization);
+  }
+
+  [descriptionInput, keywordInput].forEach((input) => {
+    if (!input) return;
+    input.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        runListingOptimization();
+      }
+    });
+  });
+
+  document.querySelectorAll(".listing-template-row button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const template = button.dataset.template || "";
+      if (descriptionInput) {
+        descriptionInput.value = template;
+        descriptionInput.focus();
+      }
+      if (keywordInput && !keywordInput.value.trim()) {
+        keywordInput.value = inferTemplateKeywords(template);
+      }
+    });
+  });
+}
+
+async function runListingOptimization() {
+  const descriptionInput = document.getElementById("listing-product-description");
+  const keywordInput = document.getElementById("listing-keywords");
+  const asinInput = document.getElementById("listing-competitor-asin");
+  const marketplaceSelect = document.getElementById("listing-marketplace");
+  const button = document.getElementById("generate-listing");
+  const status = document.getElementById("listing-status");
+  const productDescription = descriptionInput.value.trim();
+
+  if (!productDescription) {
+    setListingStatus("请先输入产品描述", false);
+    descriptionInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>生成中...';
+  setListingStatus("正在生成 Listing 内容并计算 8 维质量评分", true);
+
+  try {
+    const data = await requestJson(endpoints.listingOptimize, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_description: productDescription,
+        keywords: keywordInput.value,
+        competitor_asin: asinInput.value,
+        marketplace: marketplaceSelect.value,
+      }),
+    });
+    renderListingOptimization(data);
+    setListingStatus("Listing 已生成，评分与关键词覆盖地图已更新", true);
+  } catch (error) {
+    setListingStatus(error.message, false);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      生成 Listing
+    `;
+  }
+}
+
+function renderListingOptimization(data) {
+  const listing = data.listing;
+  const score = data.quality_score;
+  const coverage = data.keyword_coverage;
+
+  document.getElementById("listing-title-output").classList.remove("empty");
+  document.getElementById("listing-title-output").textContent = listing.title;
+  document.getElementById("listing-title-count").textContent = `${listing.title.length}/200`;
+
+  const bulletsOutput = document.getElementById("listing-bullets-output");
+  bulletsOutput.innerHTML = listing.bullets
+    .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
+    .join("");
+
+  document.getElementById("listing-description-output").classList.remove("empty");
+  document.getElementById("listing-description-output").textContent = listing.description;
+  document.getElementById("listing-description-count").textContent = `${listing.description.length}/2000`;
+
+  const searchTermsOutput = document.getElementById("listing-search-terms-output");
+  searchTermsOutput.classList.remove("empty");
+  searchTermsOutput.innerHTML = (listing.backend_terms || [])
+    .map((term) => `<span>${escapeHtml(term)}</span>`)
+    .join("");
+
+  document.getElementById("listing-quality-score").textContent = `${score.overall_score}/100`;
+  document.getElementById("listing-quality-grade").textContent = score.grade;
+  document.getElementById("listing-score-dimensions").innerHTML = score.dimensions
+    .map(renderListingScoreDimension)
+    .join("");
+
+  document.getElementById("listing-coverage-map").innerHTML = coverage.items.length
+    ? coverage.items.map(renderListingCoverageItem).join("")
+    : '<p class="empty">未输入目标关键词，无法生成覆盖地图</p>';
+}
+
+function renderListingScoreDimension(item) {
+  return `
+    <div class="listing-score-row">
+      <div>
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${item.score}%</strong>
+      </div>
+      <div class="listing-score-bar" aria-hidden="true">
+        <i style="width:${Math.max(0, Math.min(100, item.score))}%"></i>
+      </div>
+    </div>
+  `;
+}
+
+function renderListingCoverageItem(item) {
+  const statusClass = item.status === "已覆盖" ? "covered" : item.status === "部分覆盖" ? "partial" : "missing";
+  const locations = item.locations && item.locations.length ? item.locations : ["未覆盖"];
+  return `
+    <article class="listing-coverage-item ${statusClass}">
+      <div>
+        <strong>${escapeHtml(item.keyword)}</strong>
+        <span>${escapeHtml(item.status)}</span>
+      </div>
+      <div class="listing-location-tags">
+        ${locations.map((location) => `<em>${escapeHtml(location)}</em>`).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function setListingStatus(message, ok) {
+  const status = document.getElementById("listing-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
+}
+
+function inferTemplateKeywords(template) {
+  const lower = template.toLowerCase();
+  if (lower.includes("fan")) return "portable fan, handheld fan, usb rechargeable fan, mini fan";
+  if (lower.includes("organizer")) return "storage organizer, kitchen organizer, space saving organizer";
+  if (lower.includes("beauty")) return "beauty accessory, skin friendly, travel beauty set";
+  return "";
+}
+
+// ==================== 广告优化 ====================
+
+function initAdOptimization() {
+  const generateButton = document.getElementById("generate-ad-strategy");
+  const keywordInput = document.getElementById("ad-product-keyword");
+
+  if (generateButton) {
+    generateButton.addEventListener("click", runAdOptimization);
+  }
+
+  if (keywordInput) {
+    keywordInput.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        runAdOptimization();
+      }
+    });
+  }
+}
+
+async function runAdOptimization() {
+  const keywordInput = document.getElementById("ad-product-keyword");
+  const budgetInput = document.getElementById("ad-daily-budget");
+  const acosSelect = document.getElementById("ad-target-acos");
+  const adTypeSelect = document.getElementById("ad-type");
+  const marketplaceSelect = document.getElementById("ad-marketplace");
+  const categorySelect = document.getElementById("ad-category");
+  const button = document.getElementById("generate-ad-strategy");
+  const productKeyword = keywordInput.value.trim();
+
+  if (!productKeyword) {
+    setAdStatus("请先输入产品关键词", false);
+    keywordInput.focus();
+    return;
+  }
+
+  const dailyBudget = Number(budgetInput.value);
+  if (!dailyBudget || dailyBudget <= 0) {
+    setAdStatus("每日预算必须大于 0", false);
+    budgetInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>生成中...';
+  setAdStatus("正在生成广告策略、出价建议和预算分配", true);
+  setAdProgress(true);
+
+  try {
+    const data = await requestJson(endpoints.adOptimize, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_keyword: productKeyword,
+        daily_budget: dailyBudget,
+        target_acos: Number(acosSelect.value),
+        ad_type: adTypeSelect.value,
+        marketplace: marketplaceSelect.value,
+        category: categorySelect.value,
+      }),
+    });
+    renderAdOptimization(data);
+    setAdStatus("广告策略已生成，可按预算与关键词表执行首轮投放", true);
+  } catch (error) {
+    setAdStatus(error.message, false);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      生成广告策略
+    `;
+  }
+}
+
+function renderAdOptimization(data) {
+  renderAdMetrics(data.metrics);
+  renderAdKeywordBids(data.keyword_bids || []);
+  renderAdNegativeKeywords(data.negative_keywords || []);
+  renderAdDayparting(data.dayparting_strategy || []);
+  renderAdBudgetAllocation(data.budget_allocation || {});
+  renderAdReport(data);
+}
+
+function renderAdMetrics(metrics) {
+  const grid = document.getElementById("ad-metrics-grid");
+  grid.innerHTML = `
+    <article><span>建议日预算</span><strong>$${metrics.daily_budget}</strong><em>基准</em></article>
+    <article><span>目标 ACoS</span><strong>${metrics.target_acos}%</strong><em>目标</em></article>
+    <article><span>预估 ROAS</span><strong>${metrics.estimated_roas}x</strong><em>回报率</em></article>
+    <article><span>基准 CPC</span><strong>$${metrics.baseline_cpc}</strong><em>估算</em></article>
+  `;
+}
+
+function renderAdKeywordBids(rows) {
+  document.getElementById("ad-keyword-count").textContent = `${rows.length} 个关键词`;
+  const tbody = document.getElementById("ad-keyword-bids");
+  tbody.innerHTML = rows.length
+    ? rows
+        .map((row) => {
+          const competitionClass = row.competition === "高" ? "high" : row.competition === "中" ? "mid" : "low";
+          return `
+            <tr>
+              <td>${escapeHtml(row.keyword)}</td>
+              <td><span class="ad-match-tag">${escapeHtml(row.match_type)}</span></td>
+              <td>$${row.suggested_bid}</td>
+              <td>$${row.estimated_cpc}</td>
+              <td><span class="ad-competition ${competitionClass}">${escapeHtml(row.competition)}</span></td>
+              <td><button type="button" class="copy-btn" data-copy="${escapeHtml(row.keyword)}">复制</button></td>
+            </tr>
+          `;
+        })
+        .join("")
+    : '<tr><td colspan="6">暂无关键词建议</td></tr>';
+
+  tbody.querySelectorAll(".copy-btn").forEach((button) => {
+    button.addEventListener("click", () => copyText(button.dataset.copy || ""));
+  });
+}
+
+function renderAdNegativeKeywords(rows) {
+  document.getElementById("ad-negative-count").textContent = `${rows.length} 个否定词`;
+  const container = document.getElementById("ad-negative-keywords");
+  container.classList.toggle("empty", rows.length === 0);
+  container.innerHTML = rows.length
+    ? rows
+        .map(
+          (row) => `
+            <span title="${escapeHtml(row.reason)}">${escapeHtml(row.keyword)} <button type="button" data-copy="${escapeHtml(row.keyword)}">复制</button></span>
+          `,
+        )
+        .join("")
+    : "暂无否定词建议";
+
+  container.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => copyText(button.dataset.copy || ""));
+  });
+}
+
+function renderAdDayparting(rows) {
+  const container = document.getElementById("ad-dayparting-chart");
+  container.innerHTML = rows
+    .map((row) => {
+      const height = Math.round(Number(row.bid_multiplier) * 54);
+      const levelClass = row.level === "高峰时段" ? "peak" : row.level === "低谷时段" ? "low" : "normal";
+      return `
+        <div class="ad-hour-bar ${levelClass}" title="${row.hour}:00 ${escapeHtml(row.level)} ${row.bid_multiplier}x">
+          <i style="height:${height}px"></i>
+          <span>${row.hour}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderAdBudgetAllocation(allocation) {
+  const container = document.getElementById("ad-budget-allocation");
+  const items = allocation.items || [];
+  container.innerHTML = items.length
+    ? items
+        .map(
+          (item) => `
+            <article>
+              <div>
+                <strong>${escapeHtml(item.channel)}</strong>
+                <span>${escapeHtml(item.goal)}</span>
+              </div>
+              <em>${item.ratio}% · $${item.daily_budget}/天</em>
+              <div class="ad-budget-bar"><i style="width:${item.ratio}%"></i></div>
+            </article>
+          `,
+        )
+        .join("")
+    : '<p class="empty">生成后显示 SP / SB / SD 配比</p>';
+}
+
+function renderAdReport(data) {
+  document.getElementById("ad-report-text").textContent = data.report;
+  document.getElementById("ad-launch-plan").innerHTML = (data.launch_plan || [])
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  document.getElementById("ad-risk-controls").innerHTML = (data.risk_controls || [])
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+}
+
+function setAdStatus(message, ok) {
+  const status = document.getElementById("ad-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
+}
+
+function setAdProgress(done) {
+  document.querySelectorAll("#ad-progress-list div").forEach((item) => {
+    item.classList.toggle("done", done);
+  });
+}
+
+function copyText(value) {
+  if (!value) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(value).catch(() => {});
+  }
+}
+
+// ==================== 供应链分析 ====================
+
+function initSupplyChainAnalysis() {
+  const button = document.getElementById("run-supply-chain");
+  const productInput = document.getElementById("supply-product");
+
+  if (button) {
+    button.addEventListener("click", runSupplyChainAnalysis);
+  }
+
+  if (productInput) {
+    productInput.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        runSupplyChainAnalysis();
+      }
+    });
+  }
+}
+
+async function runSupplyChainAnalysis() {
+  const productInput = document.getElementById("supply-product");
+  const quantitySelect = document.getElementById("supply-quantity");
+  const marketplaceSelect = document.getElementById("supply-marketplace");
+  const logisticsSelect = document.getElementById("supply-logistics");
+  const budgetSelect = document.getElementById("supply-budget");
+  const categorySelect = document.getElementById("supply-category");
+  const button = document.getElementById("run-supply-chain");
+  const product = productInput.value.trim();
+
+  if (!product) {
+    setSupplyStatus("请先输入产品", false);
+    productInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>分析中...';
+  setSupplyStatus("正在估算成本、供应商、物流和备货补货方案", true);
+
+  try {
+    const data = await requestJson(endpoints.supplyChainAnalyze, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product,
+        purchase_quantity: Number(quantitySelect.value),
+        marketplace: marketplaceSelect.value,
+        logistics_method: logisticsSelect.value,
+        budget: Number(budgetSelect.value),
+        category: categorySelect.value,
+      }),
+    });
+    renderSupplyChainAnalysis(data);
+    setSupplyStatus("供应链方案已生成，建议用真实供应商和物流报价复核后执行", true);
+  } catch (error) {
+    setSupplyStatus(error.message, false);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      分析供应链
+    `;
+  }
+}
+
+function renderSupplyChainAnalysis(data) {
+  document.getElementById("supply-empty-state").style.display = "none";
+  document.getElementById("supply-results").style.display = "block";
+
+  renderSupplyCosts(data.cost_analysis);
+  renderSupplySupplier(data.supplier_evaluation);
+  renderSupplyLogistics(data.logistics_plan);
+  renderSupplyInventory(data.inventory_plan);
+  renderSupplyCashFlow(data.cash_flow);
+  renderSupplyRisks(data.risk_controls || []);
+  document.getElementById("supply-report-text").textContent = data.report;
+}
+
+function renderSupplyCosts(cost) {
+  document.getElementById("supply-cost-per-unit").textContent = `$${cost.cost_per_unit}/件`;
+  document.getElementById("supply-cost-breakdown").innerHTML = [
+    ["货品成本", cost.goods_cost],
+    ["头程物流", cost.logistics_cost],
+    ["包装成本", cost.packaging_cost],
+    ["质检成本", cost.inspection_cost],
+    ["关税预留", cost.duty_cost],
+    ["总成本", cost.total_cost],
+  ]
+    .map(
+      ([label, value]) => `
+        <div>
+          <span>${label}</span>
+          <strong>$${value}</strong>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderSupplySupplier(supplier) {
+  document.getElementById("supply-supplier-grade").textContent = supplier.grade;
+  document.getElementById("supply-supplier-score").innerHTML = `
+    <span>综合评分</span>
+    <strong>${supplier.overall_score}/100</strong>
+  `;
+  document.getElementById("supply-supplier-dimensions").innerHTML = supplier.dimensions
+    .map(
+      (item) => `
+        <div>
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${item.score}%</strong>
+          <i><em style="width:${Math.max(0, Math.min(100, item.score))}%"></em></i>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderSupplyLogistics(plan) {
+  document.getElementById("supply-logistics-label").textContent = plan.label;
+  document.getElementById("supply-logistics-plan").innerHTML = `
+    <div><span>预计头程</span><strong>${plan.lead_time_days} 天</strong></div>
+    <div><span>安全缓冲</span><strong>${plan.buffer_days} 天</strong></div>
+    <div><span>建议批次</span><strong>${plan.batch_count} 批</strong></div>
+    <div><span>单件物流</span><strong>$${plan.cost_per_unit}</strong></div>
+    <p>${escapeHtml(plan.recommendation)}</p>
+  `;
+}
+
+function renderSupplyInventory(plan) {
+  document.getElementById("supply-inventory-plan").innerHTML = `
+    ${renderSupplyMetric("首批备货", `${plan.first_stock_units} 件`)}
+    ${renderSupplyMetric("建议补货批量", `${plan.replenish_units} 件`)}
+    ${renderSupplyMetric("补货点", `${plan.reorder_point_units} 件`)}
+    ${renderSupplyMetric("安全库存", `${plan.safety_stock_days} 天`)}
+    ${renderSupplyMetric("周转周期", `${plan.turnover_days} 天`)}
+    <p>${escapeHtml(plan.logic)}</p>
+  `;
+}
+
+function renderSupplyCashFlow(cash) {
+  document.getElementById("supply-cash-flow").innerHTML = `
+    ${renderSupplyMetric("预算", `$${cash.budget}`)}
+    ${renderSupplyMetric("预算使用率", `${cash.budget_usage_rate}%`)}
+    ${renderSupplyMetric("首批现金占用", `$${cash.first_batch_cash}`)}
+    ${renderSupplyMetric("预留现金", `$${cash.reserved_cash}`)}
+    ${renderSupplyMetric("资金压力", cash.capital_pressure)}
+  `;
+}
+
+function renderSupplyMetric(label, value) {
+  return `
+    <div>
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function renderSupplyRisks(risks) {
+  document.getElementById("supply-risk-controls").innerHTML = risks
+    .map((risk) => `<li>${escapeHtml(risk)}</li>`)
+    .join("");
+}
+
+function setSupplyStatus(message, ok) {
+  const status = document.getElementById("supply-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
 }
 
 // ==================== 聊天功能 ====================
@@ -1631,19 +2173,29 @@ function renderResearchKeywordRow(keyword) {
 }
 
 function renderResearchCompetitorCard(competitor) {
+  const priceText = competitor.has_price ? formatMoney(competitor.price) : "价格未采集";
+  const reviewText = competitor.has_review_count ? `${formatNumber(competitor.review_count)} 评论` : "评论数未采集";
+  const imageHtml = competitor.main_image
+    ? `<img src="${escapeHtml(competitor.main_image)}" alt="" />`
+    : `${escapeHtml((competitor.title || competitor.asin || "-").slice(0, 1).toUpperCase())}`;
+  const qualityNotes = competitor.data_quality_notes && competitor.data_quality_notes.length
+    ? `<div class="competitor-data-notes">${competitor.data_quality_notes.map((note) => `<span>${escapeHtml(note)}</span>`).join("")}</div>`
+    : "";
   return `
     <article class="research-competitor-card">
       <div class="competitor-card-body">
-        <div class="competitor-thumb">${escapeHtml((competitor.title || competitor.asin || "-").slice(0, 1).toUpperCase())}</div>
+        <div class="competitor-thumb">${imageHtml}</div>
         <div>
           <h4>${escapeHtml(competitor.title)}</h4>
           <div class="competitor-meta">
-            <strong>${formatMoney(competitor.price)}</strong>
+            <strong class="${competitor.has_price ? "" : "muted-value"}">${priceText}</strong>
             <span>${competitor.rating ? competitor.rating.toFixed(1) : "0.0"} ★</span>
-            <span>${formatNumber(competitor.review_count)} 评论</span>
+            <span>${reviewText}</span>
           </div>
+          <div class="competitor-asin">ASIN: ${escapeHtml(competitor.asin)}</div>
         </div>
       </div>
+      ${qualityNotes}
       <div class="competitor-card-footer">
         <span>月销估算 ${formatNumber(competitor.estimated_monthly_sales)}</span>
         ${competitor.badge ? `<em>${escapeHtml(competitor.badge)}</em>` : ""}
@@ -1918,3 +2470,6 @@ async function analyzeSelectedProducts() {
 
 // 在 DOMContentLoaded 中初始化 AI 选品
 document.addEventListener("DOMContentLoaded", initAISelection);
+document.addEventListener("DOMContentLoaded", initListingOptimization);
+document.addEventListener("DOMContentLoaded", initAdOptimization);
+document.addEventListener("DOMContentLoaded", initSupplyChainAnalysis);
