@@ -33,6 +33,7 @@ def test_frontend_static_assets_are_served():
     assert "runListingOptimization" in js_response.text
     assert "runAdOptimization" in js_response.text
     assert "runSupplyChainAnalysis" in js_response.text
+    assert "window.scrollTo" in js_response.text
     assert css_response.status_code == 200
     assert ".dashboard" in css_response.text
     assert ".bar-row" in css_response.text
@@ -40,6 +41,8 @@ def test_frontend_static_assets_are_served():
     assert ".listing-optimizer-grid" in css_response.text
     assert ".ad-optimizer-grid" in css_response.text
     assert ".supply-chain-grid" in css_response.text
+    side_nav_block = css_response.text.split(".side-nav {", 1)[1].split("}", 1)[0]
+    assert "overflow-y: auto" in side_nav_block
 
 
 def test_frontend_dashboard_contains_product_research_entry():

@@ -151,6 +151,7 @@ function activateNavItem(event) {
   if (targetPage) {
     targetPage.style.display = "block";
   }
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 
   // 更新顶部标题
   const titleInfo = pageTitles[pageName];
