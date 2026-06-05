@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Amazon Agent 运营台</title>
-    <link rel="stylesheet" href="/static/styles.css?v=sidebar-scroll-20260603" />
+    <link rel="stylesheet" href="/static/styles.css?v=fba-estimator-20260605" />
   </head>
   <body>
     <div class="app-shell">
@@ -88,6 +88,18 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 </span>
                 供应链分析
+              </a>
+              <a class="nav-item" href="#profit-calculator" data-page="profit-calculator">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </span>
+                利润核算
+              </a>
+              <a class="nav-item" href="#fba-estimator" data-page="fba-estimator">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </span>
+                FBA 成本估算
               </a>
               <a class="nav-item" href="#chat" data-page="chat">
                 <span class="nav-icon">
@@ -1337,6 +1349,293 @@
           </section>
         </div>
 
+        <!-- ========== 页面：利润核算 ========== -->
+        <div class="page" id="page-profit-calculator" style="display:none">
+          <section class="page-heading">
+            <div>
+              <span class="eyebrow">Profit Calculator</span>
+              <h2>利润核算</h2>
+              <p>输入售价、成本、广告、退货和尺寸参数，保存单品利润核算快照。</p>
+            </div>
+            <span class="research-source-badge profit-source-badge">保存到本地数据库</span>
+          </section>
+
+          <section class="profit-hero">
+            <div>
+              <span>财务部 · PRO</span>
+              <h3>利润核算计算器</h3>
+              <p>输入售价 / 成本 / 广告 / 退货等参数，计算单件利润、月利润、ROI、健康度和改进建议。</p>
+            </div>
+            <strong>FBA 费用本地估算</strong>
+          </section>
+
+          <div class="profit-calculator-grid">
+            <form id="profit-form" class="profit-form-card">
+              <div class="profit-section-title">
+                <span></span>
+                <h3>商品参数</h3>
+              </div>
+              <div class="profit-field-grid">
+                <div class="wide">
+                  <label for="profit-product-name">产品名称</label>
+                  <input id="profit-product-name" type="text" autocomplete="off" value="Insulated tumbler" />
+                </div>
+                <div>
+                  <label for="profit-sku">SKU</label>
+                  <input id="profit-sku" type="text" autocomplete="off" value="TUMBLER-001" />
+                </div>
+                <div>
+                  <label for="profit-marketplace">站点</label>
+                  <select id="profit-marketplace">
+                    <option value="US">US 美国站</option>
+                    <option value="CA">CA 加拿大站</option>
+                    <option value="UK">UK 英国站</option>
+                    <option value="DE">DE 德国站</option>
+                    <option value="JP">JP 日本站</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="profit-sale-price">售价</label>
+                  <input id="profit-sale-price" type="number" min="0" step="0.01" value="29.99" />
+                </div>
+                <div>
+                  <label for="profit-landed-cost">进货成本</label>
+                  <input id="profit-landed-cost" type="number" min="0" step="0.01" value="7.5" />
+                </div>
+                <div>
+                  <label for="profit-first-leg">头程运费</label>
+                  <input id="profit-first-leg" type="number" min="0" step="0.01" value="1.2" />
+                </div>
+                <div>
+                  <label for="profit-referral-rate">佣金率</label>
+                  <input id="profit-referral-rate" type="number" min="0" max="100" step="0.1" value="15" />
+                </div>
+              </div>
+
+              <div class="profit-section-title">
+                <span></span>
+                <h3>尺寸与重量</h3>
+              </div>
+              <div class="profit-field-grid dimensions">
+                <div>
+                  <label for="profit-weight">重量 oz</label>
+                  <input id="profit-weight" type="number" min="0" step="0.1" value="12" />
+                </div>
+                <div>
+                  <label for="profit-length">长 in</label>
+                  <input id="profit-length" type="number" min="0" step="0.1" value="8" />
+                </div>
+                <div>
+                  <label for="profit-width">宽 in</label>
+                  <input id="profit-width" type="number" min="0" step="0.1" value="6" />
+                </div>
+                <div>
+                  <label for="profit-height">高 in</label>
+                  <input id="profit-height" type="number" min="0" step="0.1" value="3" />
+                </div>
+              </div>
+
+              <div class="profit-section-title">
+                <span></span>
+                <h3>运营参数</h3>
+              </div>
+              <div class="profit-field-grid">
+                <div>
+                  <label for="profit-ad-acos">广告 ACoS</label>
+                  <input id="profit-ad-acos" type="number" min="0" max="100" step="0.1" value="15" />
+                </div>
+                <div>
+                  <label for="profit-return-rate">退货率</label>
+                  <input id="profit-return-rate" type="number" min="0" max="100" step="0.1" value="3" />
+                </div>
+                <div>
+                  <label for="profit-monthly-units">预期月销</label>
+                  <input id="profit-monthly-units" type="number" min="1" step="1" value="300" />
+                </div>
+                <div>
+                  <label for="profit-fixed-cost">月固定费</label>
+                  <input id="profit-fixed-cost" type="number" min="0" step="0.01" value="300" />
+                </div>
+              </div>
+              <label class="profit-checkbox">
+                <input id="profit-q4-peak" type="checkbox" />
+                Q4 旺季按月销 1.3 倍估算
+              </label>
+              <button id="save-profit-calculation" class="primary-button profit-save-button" type="submit">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                保存核算
+              </button>
+              <div id="profit-status" class="listing-status" aria-live="polite"></div>
+            </form>
+
+            <section class="profit-results-panel">
+              <article class="profit-result-hero">
+                <span>月毛利</span>
+                <strong id="profit-monthly-profit">$0</strong>
+                <small id="profit-health">等待核算</small>
+              </article>
+              <div class="profit-metric-grid">
+                <article>
+                  <span>单件毛利</span>
+                  <strong id="profit-unit-profit">$0.00</strong>
+                </article>
+                <article>
+                  <span>ROI</span>
+                  <strong id="profit-roi">0%</strong>
+                </article>
+                <article>
+                  <span>月平衡点</span>
+                  <strong id="profit-break-even">0</strong>
+                </article>
+                <article>
+                  <span>FBA 档</span>
+                  <strong id="profit-fba-tier">--</strong>
+                </article>
+              </div>
+              <article class="profit-breakdown-card">
+                <h3>单件成本拆解</h3>
+                <div id="profit-breakdown" class="profit-breakdown-list">
+                  <p class="empty">保存核算后显示明细</p>
+                </div>
+              </article>
+              <article class="profit-advice-card">
+                <h3>改进建议</h3>
+                <ul id="profit-advice"><li>保存核算后显示建议</li></ul>
+              </article>
+              <article class="profit-history-card">
+                <div class="profit-card-heading">
+                  <h3>最近核算</h3>
+                  <button id="refresh-profit-history" class="ghost-button" type="button">刷新</button>
+                </div>
+                <div id="profit-history" class="profit-history-list">
+                  <p class="empty">暂无保存记录</p>
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <!-- ========== 页面：FBA 成本估算 ========== -->
+        <div class="page" id="page-fba-estimator" style="display:none">
+          <section class="page-heading fba-heading">
+            <div>
+              <span class="eyebrow">FBA Cost</span>
+              <h2>FBA 成本估算</h2>
+              <p>输入商品尺寸、重量、品类和可选售价，实时估算 Amazon US FBA fulfillment、storage、referral 和净利润。</p>
+            </div>
+            <span class="research-source-badge fba-source-badge">Amazon US 本地费率表</span>
+          </section>
+
+          <section class="fba-hero">
+            <div class="fba-hero-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <div>
+              <h3>FBA 成本估算器</h3>
+              <p>输入商品尺寸 / 重量，实时查到 Amazon FBA 各档 fee。数据源：Amazon Seller Central 2024 公布费率，纯本地计算。</p>
+            </div>
+            <strong>财务部 · PRO</strong>
+          </section>
+
+          <div class="fba-estimator-grid">
+            <form id="fba-form" class="fba-card fba-input-card">
+              <div class="fba-card-heading">
+                <h3>商品参数</h3>
+                <span>所有字段实时计算</span>
+              </div>
+              <label for="fba-weight">重量 (oz · 盎司)</label>
+              <input id="fba-weight" type="number" min="0.1" step="0.1" value="12" />
+
+              <label>外箱尺寸 (in · 英寸 · 长 × 宽 × 高)</label>
+              <div class="fba-dimension-grid">
+                <input id="fba-length" type="number" min="0.1" step="0.1" value="10" aria-label="长" />
+                <input id="fba-width" type="number" min="0.1" step="0.1" value="6" aria-label="宽" />
+                <input id="fba-height" type="number" min="0.1" step="0.1" value="2" aria-label="高" />
+              </div>
+
+              <label for="fba-category">品类</label>
+              <select id="fba-category">
+                <option value="general">通用商品 (默认 15%)</option>
+                <option value="electronics">电子产品 (8%)</option>
+                <option value="apparel">服装鞋包 (17%)</option>
+                <option value="beauty">美妆个护 (15%)</option>
+                <option value="grocery">食品杂货 (15%)</option>
+              </select>
+
+              <label>仓储季节</label>
+              <div class="fba-season-toggle">
+                <label><input type="radio" name="fba-season" value="normal" checked /> 常规 (Jan-Sep)</label>
+                <label><input type="radio" name="fba-season" value="peak" /> 旺季 (Oct-Dec)</label>
+              </div>
+
+              <div class="fba-optional-grid">
+                <div>
+                  <label for="fba-sale-price">售价 (USD)</label>
+                  <input id="fba-sale-price" type="number" min="0" step="0.01" placeholder="例如 29.99" />
+                </div>
+                <div>
+                  <label for="fba-landed-cost">进货成本 (USD)</label>
+                  <input id="fba-landed-cost" type="number" min="0" step="0.01" placeholder="例如 8.50" />
+                </div>
+              </div>
+              <label for="fba-monthly-units">预期月销量</label>
+              <input id="fba-monthly-units" type="number" min="1" step="1" value="1" />
+              <div id="fba-status" class="listing-status" aria-live="polite"></div>
+            </form>
+
+            <section class="fba-card fba-result-card">
+              <div class="fba-card-heading">
+                <h3>FBA 成本结算</h3>
+                <span id="fba-tier-badge">--</span>
+              </div>
+              <span class="fba-kicker">Amazon FBA 总成本 · 每单</span>
+              <div class="fba-total"><strong id="fba-total-cost">$0.00</strong><span>/ 单</span></div>
+              <p id="fba-formula">等待计算</p>
+              <div class="fba-cost-grid">
+                <article>
+                  <span>Fulfillment</span>
+                  <strong id="fba-fulfillment">$0.00</strong>
+                  <small>拣货 + 包装 + 配送</small>
+                </article>
+                <article>
+                  <span>Storage / 单</span>
+                  <strong id="fba-storage">$0.00</strong>
+                  <small>Jan-Sep 常规 · 已平摊</small>
+                </article>
+                <article>
+                  <span>Referral</span>
+                  <strong id="fba-referral">--</strong>
+                  <small id="fba-referral-note">需填写售价</small>
+                </article>
+              </div>
+              <div class="fba-profit-note" id="fba-profit-note">填写售价 + 进货成本可显示净利、毛利率与保本售价。</div>
+            </section>
+          </div>
+
+          <section class="fba-table-card">
+            <div>
+              <h3>FBA Size Tier 完整对照表</h3>
+              <p>Amazon US 2024 公布档位，fee 范围为对应 tier 内最轻至最重的 fulfillment fee。</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>档位</th>
+                    <th>重量范围</th>
+                    <th>尺寸限制</th>
+                    <th>Fulfillment Fee</th>
+                  </tr>
+                </thead>
+                <tbody id="fba-tier-table">
+                  <tr><td colspan="4">加载后显示 size tier 对照表</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="fba-footnote">注：本表未列出 low-inventory、aged-inventory、hazmat 等附加费；referral fee 按品类单独适用，不计入 fulfillment。</p>
+          </section>
+        </div>
+
         <!-- ========== 页面：广告分析 ========== -->
         <div class="page" id="page-ads-analysis" style="display:none">
           <section class="page-heading">
@@ -1544,6 +1843,6 @@
 
       </main>
     </div>
-    <script src="/static/app.js?v=supply-chain-20260603"></script>
+    <script src="/static/app.js?v=fba-estimator-20260605"></script>
   </body>
 </html>

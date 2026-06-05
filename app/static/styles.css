@@ -2488,6 +2488,569 @@ td:first-child {
 
 /* ==================== 供应链分析 ==================== */
 
+/* ==================== FBA 成本估算 ==================== */
+
+.fba-source-badge {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.fba-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 24px 28px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  box-shadow: var(--shadow);
+}
+
+.fba-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.fba-hero h3 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.fba-hero p {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.fba-hero strong {
+  margin-left: auto;
+  padding: 7px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 13px;
+}
+
+.fba-estimator-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) minmax(420px, 1fr);
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.fba-card,
+.fba-table-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.fba-card {
+  padding: 20px;
+}
+
+.fba-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.fba-card-heading h3,
+.fba-table-card h3 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.fba-card-heading span,
+.fba-table-card p,
+.fba-input-card label {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.fba-input-card {
+  display: grid;
+  gap: 14px;
+}
+
+.fba-input-card label {
+  font-weight: 700;
+}
+
+.fba-input-card input,
+.fba-input-card select {
+  width: 100%;
+  padding: 0 14px;
+}
+
+.fba-input-card input:focus,
+.fba-input-card select:focus {
+  border-color: #60a5fa;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(96 165 250 / 14%);
+}
+
+.fba-dimension-grid,
+.fba-optional-grid,
+.fba-cost-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.fba-dimension-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fba-optional-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fba-season-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.fba-season-toggle label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  border-radius: 6px;
+  color: #334155;
+}
+
+.fba-season-toggle input {
+  width: auto;
+  min-height: auto;
+}
+
+.fba-kicker {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fba-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.fba-total strong {
+  color: #020617;
+  font-size: 48px;
+  line-height: 1;
+}
+
+.fba-total span,
+#fba-formula {
+  color: #475569;
+}
+
+#fba-formula {
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.fba-cost-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fba-cost-grid article {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  background: #eff6ff;
+}
+
+.fba-cost-grid article:nth-child(2) {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.fba-cost-grid article:nth-child(3) {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.fba-cost-grid span {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fba-cost-grid article:nth-child(2) span {
+  color: #c2410c;
+}
+
+.fba-cost-grid article:nth-child(3) span {
+  color: #7c3aed;
+}
+
+.fba-cost-grid strong {
+  color: #020617;
+  font-size: 24px;
+}
+
+.fba-cost-grid small {
+  color: #475569;
+  font-size: 12px;
+}
+
+.fba-profit-note {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.fba-table-card {
+  padding: 18px 20px 12px;
+}
+
+.fba-table-card > div:first-child {
+  margin-bottom: 14px;
+}
+
+.fba-table-card table {
+  min-width: 820px;
+}
+
+.fba-table-card tbody tr.active {
+  background: #eff6ff;
+}
+
+.fba-table-card tbody tr.active td:first-child strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+.fba-table-card th:last-child,
+.fba-table-card td:last-child {
+  text-align: right;
+}
+
+.fba-footnote {
+  margin-top: 12px !important;
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+}
+
+/* ==================== 利润核算 ==================== */
+
+.profit-source-badge {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.profit-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 22px 26px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+}
+
+.profit-hero span,
+.profit-hero p {
+  color: #334155;
+  font-size: 13px;
+}
+
+.profit-hero h3 {
+  margin: 8px 0 6px;
+  color: #111827;
+  font-size: 24px;
+}
+
+.profit-hero strong {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+}
+
+.profit-calculator-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.92fr) minmax(420px, 1.08fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.profit-form-card,
+.profit-results-panel article {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.profit-form-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.profit-section-title,
+.profit-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profit-section-title {
+  justify-content: flex-start;
+}
+
+.profit-section-title span {
+  width: 5px;
+  height: 22px;
+  border-radius: 999px;
+  background: #10b981;
+}
+
+.profit-section-title h3,
+.profit-card-heading h3,
+.profit-breakdown-card h3,
+.profit-advice-card h3 {
+  margin: 0;
+}
+
+.profit-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profit-field-grid.dimensions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.profit-field-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.profit-field-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profit-field-grid input,
+.profit-field-grid select {
+  width: 100%;
+  padding: 0 14px;
+}
+
+.profit-field-grid input:focus,
+.profit-field-grid select:focus {
+  border-color: #10b981;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(16 185 129 / 12%);
+}
+
+.profit-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profit-checkbox input {
+  min-height: auto;
+}
+
+.profit-save-button {
+  justify-content: center;
+  min-height: 48px;
+  border-color: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 6px 16px rgba(16 185 129 / 28%);
+}
+
+.profit-results-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.profit-result-hero {
+  padding: 26px;
+  border-color: #34d399 !important;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%) !important;
+}
+
+.profit-result-hero span,
+.profit-result-hero small {
+  display: block;
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profit-result-hero strong {
+  display: block;
+  margin: 8px 0;
+  color: #047857;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.profit-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profit-metric-grid article {
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  padding: 18px;
+  border-color: #a7f3d0;
+  background: #f0fdfa;
+}
+
+.profit-metric-grid span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profit-metric-grid strong {
+  color: #059669;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.profit-breakdown-card,
+.profit-advice-card,
+.profit-history-card {
+  padding: 20px;
+}
+
+.profit-breakdown-list,
+.profit-history-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.profit-breakdown-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profit-breakdown-list span {
+  color: #475569;
+  font-size: 14px;
+}
+
+.profit-breakdown-list strong {
+  color: #334155;
+}
+
+.profit-breakdown-list .income strong {
+  color: #047857;
+}
+
+.profit-advice-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.profit-card-heading .ghost-button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.profit-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  text-align: left;
+}
+
+.profit-history-item span {
+  display: grid;
+  gap: 3px;
+}
+
+.profit-history-item strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.profit-history-item small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.profit-history-item em {
+  color: #047857;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .supply-source-badge {
   border-color: #ddd6fe;
   background: #f5f3ff;
@@ -4127,6 +4690,8 @@ td:first-child {
   .listing-optimizer-grid,
   .ad-optimizer-grid,
   .ad-result-grid,
+  .fba-estimator-grid,
+  .profit-calculator-grid,
   .supply-chain-grid {
     grid-template-columns: 1fr;
   }
@@ -4164,8 +4729,31 @@ td:first-child {
   .ad-field-grid,
   .ad-metrics-grid,
   .ad-plan-grid,
+  .fba-dimension-grid,
+  .fba-optional-grid,
+  .fba-cost-grid,
+  .profit-field-grid,
+  .profit-field-grid.dimensions,
+  .profit-metric-grid,
   .supply-config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profit-hero,
+  .fba-hero,
+  .fba-card-heading,
+  .profit-card-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fba-hero strong {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+
+  .profit-save-button {
+    width: 100%;
   }
 
   .supply-section-title,

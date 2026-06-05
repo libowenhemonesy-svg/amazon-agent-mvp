@@ -84,6 +84,18 @@ class ProfitDaily(Base):
     ad_spend: Mapped[float] = mapped_column(Float, default=0)
 
 
+class ProfitCalculation(Base):
+    __tablename__ = "profit_calculations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_name: Mapped[str] = mapped_column(String(256), index=True)
+    sku: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
+    marketplace: Mapped[str] = mapped_column(String(32), default="US", index=True)
+    input_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), index=True)
+
+
 class ReturnReviewDaily(Base):
     __tablename__ = "return_review_daily"
     __table_args__ = (UniqueConstraint("sku", "date", name="uq_return_review_daily_sku_date"),)

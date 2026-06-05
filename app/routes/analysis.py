@@ -12,10 +12,12 @@ from app.agents.llm import build_llm_client
 from app.analysis.ad_optimizer import AdOptimizer
 from app.analysis.battlefield import BattlefieldAnalyzer
 from app.analysis.diagnosis import DiagnosisAnalyzer
+from app.analysis.fba_estimator import FbaEstimateInput, FbaEstimator
 from app.analysis.listing_optimizer import ListingOptimizer
 from app.analysis.product_research import ProductResearchAnalyzer
+from app.analysis.profit_calculator import ProfitCalculationInput, ProfitCalculator
 from app.analysis.supply_chain import SupplyChainAnalyzer
-from app.db.models import SkuMaster
+from app.db.models import ProfitCalculation, SkuMaster
 from app.deps import get_session
 
 router = APIRouter(prefix="/api", tags=["分析工具"])
@@ -26,6 +28,8 @@ product_research_analyzer = ProductResearchAnalyzer()
 listing_optimizer = ListingOptimizer()
 ad_optimizer = AdOptimizer()
 supply_chain_analyzer = SupplyChainAnalyzer()
+profit_calculator = ProfitCalculator()
+fba_estimator = FbaEstimator()
 
 # 由 main.py 初始化
 _product_research_ai_enabled = True
@@ -66,6 +70,37 @@ class SupplyChainAnalyzeRequest(BaseModel):
     logistics_method: str = "FBA sea freight"
     budget: float = 10000
     category: str = "all"
+
+
+class ProfitCalculateRequest(BaseModel):
+    product_name: str
+    sku: str = ""
+    marketplace: str = "US"
+    sale_price: float
+    landed_cost: float
+    first_leg_freight: float = 0
+    referral_rate: float = 0.15
+    weight_oz: float = 12
+    length_in: float = 8
+    width_in: float = 6
+    height_in: float = 3
+    ad_acos: float = 0.15
+    return_rate: float = 0.03
+    monthly_units: int = 300
+    monthly_fixed_cost: float = 300
+    q4_peak: bool = False
+
+
+class FbaEstimateRequest(BaseModel):
+    weight_oz: float
+    length_in: float
+    width_in: float
+    height_in: float
+    category: str = "general"
+    season: str = "normal"
+    sale_price: float = 0
+    landed_cost: float = 0
+    monthly_units: int = 1
 
 
 @router.get("/battlefield/analyze")
@@ -190,3 +225,121 @@ def analyze_supply_chain(payload: SupplyChainAnalyzeRequest) -> dict:
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/profit/calculate")
+def calculate_profit(
+    payload: ProfitCalculateRequest,
+    session: Session = Depends(get_session),
+) -> dict:
+    """计算并保存 Amazon 单品利润核算快照。"""
+    product_name = payload.product_name.strip()
+    if not product_name:
+        raise HTTPException(status_code=400, detail="产品名称不能为空")
+
+    input_data = payload.model_dump()
+    input_data["product_name"] = product_name
+    input_data["sku"] = (payload.sku or "").strip()
+    input_data["marketplace"] = (payload.marketplace or "US").upper()
+    _validate_profit_input(input_data)
+
+    calculation_input = ProfitCalculationInput(**input_data)
+    result = profit_calculator.calculate(calculation_input)
+    saved = ProfitCalculation(
+        product_name=product_name,
+        sku=input_data["sku"] or None,
+        marketplace=input_data["marketplace"],
+        input_data=input_data,
+        result_data=result,
+    )
+    session.add(saved)
+    session.commit()
+    session.refresh(saved)
+    return _profit_calculation_dict(saved)
+
+
+@router.get("/profit/calculations")
+def list_profit_calculations(
+    limit: int = 10,
+    session: Session = Depends(get_session),
+) -> dict:
+    """列出最近保存的利润核算快照。"""
+    bounded_limit = min(max(limit, 1), 50)
+    rows = session.scalars(
+        select(ProfitCalculation)
+        .order_by(ProfitCalculation.created_at.desc(), ProfitCalculation.id.desc())
+        .limit(bounded_limit)
+    ).all()
+    return {"items": [_profit_calculation_dict(row) for row in rows]}
+
+
+@router.post("/fba/estimate")
+def estimate_fba(payload: FbaEstimateRequest) -> dict:
+    """估算 Amazon US FBA fulfillment、storage 和 referral 成本。"""
+    input_data = payload.model_dump()
+    _validate_fba_input(input_data)
+    input_data["category"] = (payload.category or "general").lower()
+    input_data["season"] = "peak" if payload.season == "peak" else "normal"
+    return fba_estimator.estimate(FbaEstimateInput(**input_data))
+
+
+def _validate_profit_input(input_data: dict) -> None:
+    positive_fields = {
+        "sale_price": "售价必须大于 0",
+        "landed_cost": "进货成本必须大于 0",
+        "monthly_units": "预期月销必须大于 0",
+    }
+    non_negative_fields = {
+        "first_leg_freight": "头程运费不能小于 0",
+        "monthly_fixed_cost": "月固定费不能小于 0",
+        "weight_oz": "重量不能小于 0",
+        "length_in": "长度不能小于 0",
+        "width_in": "宽度不能小于 0",
+        "height_in": "高度不能小于 0",
+    }
+    rate_fields = {
+        "referral_rate": "佣金率必须在 0 到 1 之间",
+        "ad_acos": "广告 ACoS 必须在 0 到 1 之间",
+        "return_rate": "退货率必须在 0 到 1 之间",
+    }
+    for field, message in positive_fields.items():
+        if input_data[field] <= 0:
+            raise HTTPException(status_code=400, detail=message)
+    for field, message in non_negative_fields.items():
+        if input_data[field] < 0:
+            raise HTTPException(status_code=400, detail=message)
+    for field, message in rate_fields.items():
+        if not 0 <= input_data[field] <= 1:
+            raise HTTPException(status_code=400, detail=message)
+
+
+def _validate_fba_input(input_data: dict) -> None:
+    positive_fields = {
+        "weight_oz": "重量必须大于 0",
+        "length_in": "长度必须大于 0",
+        "width_in": "宽度必须大于 0",
+        "height_in": "高度必须大于 0",
+        "monthly_units": "预计月销量必须大于 0",
+    }
+    non_negative_fields = {
+        "sale_price": "售价不能小于 0",
+        "landed_cost": "进货成本不能小于 0",
+    }
+    for field, message in positive_fields.items():
+        if input_data[field] <= 0:
+            raise HTTPException(status_code=400, detail=message)
+    for field, message in non_negative_fields.items():
+        if input_data[field] < 0:
+            raise HTTPException(status_code=400, detail=message)
+
+
+def _profit_calculation_dict(row: ProfitCalculation) -> dict:
+    return {
+        "id": row.id,
+        "product_name": row.product_name,
+        "sku": row.sku or "",
+        "marketplace": row.marketplace,
+        "input": row.input_data or {},
+        "result": row.result_data or {},
+        "created_at": row.created_at.isoformat(),
+    }

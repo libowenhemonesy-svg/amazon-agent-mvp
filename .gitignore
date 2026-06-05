@@ -1,4 +1,8 @@
 .venv/
+venv/
+env/
+.conda/
+conda/
 __pycache__/
 .pytest_cache/
 *.py[cod]
@@ -12,3 +16,10 @@ amazon_agent.db
 .vercel/
 .idea/
 .vscode/
+Users里ECC/
+node_modules/
+dist/
+build/
+*.exe
+*.dll
+*.pyd

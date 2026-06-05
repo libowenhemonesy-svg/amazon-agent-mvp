@@ -8,6 +8,9 @@ const endpoints = {
   listingOptimize: "/api/listing/optimize",
   adOptimize: "/api/ads/optimize",
   supplyChainAnalyze: "/api/supply-chain/analyze",
+  profitCalculate: "/api/profit/calculate",
+  profitCalculations: "/api/profit/calculations",
+  fbaEstimate: "/api/fba/estimate",
 };
 
 const statusOptions = [
@@ -28,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", activateNavItem);
   });
+  window.addEventListener("hashchange", initPageFromHash);
   document.getElementById("run-analysis").addEventListener("click", runAnalysis);
   document.getElementById("load-demo").addEventListener("click", loadDemo);
   document.getElementById("refresh-results").addEventListener("click", refreshResults);
@@ -41,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("alert-search").addEventListener("input", renderFilteredAlerts);
   document.getElementById("severity-filter").addEventListener("change", renderFilteredAlerts);
   document.getElementById("status-filter").addEventListener("change", renderFilteredAlerts);
+  initPageFromHash();
   refreshResults();
 });
 
@@ -120,6 +125,8 @@ const pageTitles = {
   "listing-optimization": { title: "Listing 优化", subtitle: "标题 · 五点描述 · 产品详情 · Search Terms" },
   "ad-optimization": { title: "广告优化", subtitle: "预算 · ACoS · 出价 · 否定词 · 分时策略" },
   "supply-chain": { title: "供应链分析", subtitle: "采购成本 · 供应商 · 物流 · 备货补货" },
+  "profit-calculator": { title: "利润核算", subtitle: "售价 · 成本 · FBA · 广告 · ROI" },
+  "fba-estimator": { title: "FBA 成本估算", subtitle: "尺寸 · 重量 · Size Tier · Fulfillment Fee" },
   chat: { title: "AI 助手", subtitle: "智能对话查询运营数据" },
   battlefield: { title: "战场地图", subtitle: "竞品分析 · 市场份额 · 关键词洞察" },
   diagnosis: { title: "运营天眼", subtitle: "产品健康度诊断 · 优化建议" },
@@ -135,10 +142,21 @@ function activateNavItem(event) {
 
   const navItem = event.currentTarget;
   const pageName = navItem.dataset.page;
+  showPage(pageName, navItem);
+}
 
+function initPageFromHash() {
+  const pageName = window.location.hash.replace("#", "");
+  if (!pageName) return;
+  const navItem = document.querySelector(`.nav-item[data-page="${CSS.escape(pageName)}"]`);
+  if (!navItem) return;
+  showPage(pageName, navItem);
+}
+
+function showPage(pageName, navItem) {
   // 更新导航状态
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("is-active"));
-  navItem.classList.add("is-active");
+  if (navItem) navItem.classList.add("is-active");
   document.getElementById("sidebar").classList.remove("is-open");
 
   // 隐藏所有页面
@@ -166,6 +184,12 @@ function activateNavItem(event) {
   }
   if (pageName === "ai-selection") {
     loadChromeProducts();
+  }
+  if (pageName === "profit-calculator") {
+    loadProfitHistory();
+  }
+  if (pageName === "fba-estimator") {
+    runFbaEstimate();
   }
 }
 
@@ -873,6 +897,254 @@ function copyText(value) {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(value).catch(() => {});
   }
+}
+
+// ==================== 利润核算 ====================
+
+function initProfitCalculator() {
+  const form = document.getElementById("profit-form");
+  const refreshButton = document.getElementById("refresh-profit-history");
+
+  if (form) {
+    form.addEventListener("submit", saveProfitCalculation);
+  }
+
+  if (refreshButton) {
+    refreshButton.addEventListener("click", loadProfitHistory);
+  }
+}
+
+async function saveProfitCalculation(event) {
+  event.preventDefault();
+  const productInput = document.getElementById("profit-product-name");
+  const button = document.getElementById("save-profit-calculation");
+  const productName = productInput.value.trim();
+
+  if (!productName) {
+    setProfitStatus("请输入产品名称", false);
+    productInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>保存中...';
+  setProfitStatus("正在计算并保存核算快照", true);
+
+  try {
+    const data = await requestJson(endpoints.profitCalculate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(readProfitPayload()),
+    });
+    renderProfitCalculation(data);
+    await loadProfitHistory();
+    setProfitStatus("利润核算已保存", true);
+  } catch (error) {
+    setProfitStatus(error.message, false);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      保存核算
+    `;
+  }
+}
+
+function readProfitPayload() {
+  return {
+    product_name: document.getElementById("profit-product-name").value.trim(),
+    sku: document.getElementById("profit-sku").value.trim(),
+    marketplace: document.getElementById("profit-marketplace").value,
+    sale_price: readNumber("profit-sale-price"),
+    landed_cost: readNumber("profit-landed-cost"),
+    first_leg_freight: readNumber("profit-first-leg"),
+    referral_rate: readNumber("profit-referral-rate") / 100,
+    weight_oz: readNumber("profit-weight"),
+    length_in: readNumber("profit-length"),
+    width_in: readNumber("profit-width"),
+    height_in: readNumber("profit-height"),
+    ad_acos: readNumber("profit-ad-acos") / 100,
+    return_rate: readNumber("profit-return-rate") / 100,
+    monthly_units: Math.round(readNumber("profit-monthly-units")),
+    monthly_fixed_cost: readNumber("profit-fixed-cost"),
+    q4_peak: document.getElementById("profit-q4-peak").checked,
+  };
+}
+
+function readNumber(id) {
+  return Number(document.getElementById(id).value || 0);
+}
+
+function renderProfitCalculation(data) {
+  const result = data.result || {};
+  const health = result.health || {};
+  document.getElementById("profit-monthly-profit").textContent = formatMoney(result.monthly_profit);
+  document.getElementById("profit-health").textContent = `${health.label || "未评估"} · 毛利率 ${result.margin_percent || 0}%`;
+  document.getElementById("profit-unit-profit").textContent = formatMoney(result.unit_profit);
+  document.getElementById("profit-roi").textContent = `${result.roi_percent || 0}%`;
+  document.getElementById("profit-break-even").textContent = `${result.break_even_units || 0} 单`;
+  document.getElementById("profit-fba-tier").textContent = result.fba_tier || "--";
+  renderProfitBreakdown(result.breakdown || []);
+  renderProfitAdvice(result.advice || []);
+}
+
+function renderProfitBreakdown(items) {
+  const container = document.getElementById("profit-breakdown");
+  if (!items.length) {
+    container.innerHTML = '<p class="empty">暂无成本明细</p>';
+    return;
+  }
+  container.innerHTML = items
+    .map((item) => {
+      const sign = item.type === "income" ? "+" : "-";
+      return `
+        <div class="${item.type === "income" ? "income" : ""}">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${sign}${formatMoney(item.amount)}</strong>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderProfitAdvice(advice) {
+  const list = document.getElementById("profit-advice");
+  list.innerHTML = advice.length
+    ? advice.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>暂无建议</li>";
+}
+
+async function loadProfitHistory() {
+  const container = document.getElementById("profit-history");
+  if (!container) return;
+  try {
+    const data = await requestJson(`${endpoints.profitCalculations}?limit=6`, { method: "GET" });
+    renderProfitHistory(data.items || []);
+  } catch (error) {
+    container.innerHTML = `<p class="notice-error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderProfitHistory(items) {
+  const container = document.getElementById("profit-history");
+  if (!items.length) {
+    container.innerHTML = '<p class="empty">暂无保存记录</p>';
+    return;
+  }
+  container.innerHTML = items
+    .map((item) => {
+      const result = item.result || {};
+      const createdAt = item.created_at ? new Date(item.created_at).toLocaleString("zh-CN") : "";
+      return `
+        <button class="profit-history-item" type="button" data-profit-id="${item.id}">
+          <span>
+            <strong>${escapeHtml(item.product_name)}</strong>
+            <small>${escapeHtml(item.sku || item.marketplace)} · ${escapeHtml(createdAt)}</small>
+          </span>
+          <em>${formatMoney(result.unit_profit)} / 件</em>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function setProfitStatus(message, ok) {
+  const status = document.getElementById("profit-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
+}
+
+// ==================== FBA 成本估算 ====================
+
+function initFbaEstimator() {
+  const form = document.getElementById("fba-form");
+  if (!form) return;
+  form.addEventListener("input", debounceFbaEstimate);
+  form.addEventListener("change", runFbaEstimate);
+  runFbaEstimate();
+}
+
+let fbaEstimateTimer = null;
+
+function debounceFbaEstimate() {
+  window.clearTimeout(fbaEstimateTimer);
+  fbaEstimateTimer = window.setTimeout(runFbaEstimate, 180);
+}
+
+async function runFbaEstimate() {
+  const form = document.getElementById("fba-form");
+  if (!form) return;
+  setFbaStatus("正在估算...", true);
+  try {
+    const data = await requestJson(endpoints.fbaEstimate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(readFbaPayload()),
+    });
+    renderFbaEstimate(data);
+    setFbaStatus("", true);
+  } catch (error) {
+    setFbaStatus(error.message, false);
+  }
+}
+
+function readFbaPayload() {
+  const season = document.querySelector('input[name="fba-season"]:checked')?.value || "normal";
+  return {
+    weight_oz: readNumber("fba-weight"),
+    length_in: readNumber("fba-length"),
+    width_in: readNumber("fba-width"),
+    height_in: readNumber("fba-height"),
+    category: document.getElementById("fba-category").value,
+    season,
+    sale_price: readNumber("fba-sale-price"),
+    landed_cost: readNumber("fba-landed-cost"),
+    monthly_units: Math.max(1, Math.round(readNumber("fba-monthly-units"))),
+  };
+}
+
+function renderFbaEstimate(data) {
+  document.getElementById("fba-tier-badge").textContent = data.size_tier;
+  document.getElementById("fba-total-cost").textContent = formatMoney(data.total_fba_cost);
+  document.getElementById("fba-formula").textContent = `= ${data.formula} / 单`;
+  document.getElementById("fba-fulfillment").textContent = formatMoney(data.fulfillment_fee);
+  document.getElementById("fba-storage").textContent = formatMoney(data.storage_fee);
+  document.getElementById("fba-referral").textContent = data.referral_fee > 0 ? formatMoney(data.referral_fee) : "--";
+  document.getElementById("fba-referral-note").textContent = data.referral_fee > 0
+    ? `Referral ${data.referral_rate_percent}%`
+    : "需填写售价";
+  document.getElementById("fba-profit-note").textContent = renderFbaProfitText(data);
+  renderFbaTierTable(data.tier_table || [], data.size_tier);
+}
+
+function renderFbaProfitText(data) {
+  const profit = data.profit || {};
+  if (!profit.unit_profit) {
+    return "填写售价 + 进货成本可显示净利、毛利率与保本售价。";
+  }
+  return `净利 ${formatMoney(profit.unit_profit)} / 单 · 毛利率 ${profit.margin_percent}% · Billable weight ${data.billable_weight_lb} lb`;
+}
+
+function renderFbaTierTable(rows, activeTier) {
+  const tbody = document.getElementById("fba-tier-table");
+  tbody.innerHTML = rows
+    .map((row) => `
+      <tr class="${row.tier === activeTier ? "active" : ""}">
+        <td><strong>${escapeHtml(row.tier)}</strong></td>
+        <td>${escapeHtml(row.weight_range)}</td>
+        <td>${escapeHtml(row.size_limit)}</td>
+        <td><strong>${escapeHtml(row.fee_range)}</strong></td>
+      </tr>
+    `)
+    .join("");
+}
+
+function setFbaStatus(message, ok) {
+  const status = document.getElementById("fba-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
 }
 
 // ==================== 供应链分析 ====================
@@ -2474,3 +2746,5 @@ document.addEventListener("DOMContentLoaded", initAISelection);
 document.addEventListener("DOMContentLoaded", initListingOptimization);
 document.addEventListener("DOMContentLoaded", initAdOptimization);
 document.addEventListener("DOMContentLoaded", initSupplyChainAnalysis);
+document.addEventListener("DOMContentLoaded", initProfitCalculator);
+document.addEventListener("DOMContentLoaded", initFbaEstimator);

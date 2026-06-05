@@ -33,6 +33,9 @@ def test_frontend_static_assets_are_served():
     assert "runListingOptimization" in js_response.text
     assert "runAdOptimization" in js_response.text
     assert "runSupplyChainAnalysis" in js_response.text
+    assert "saveProfitCalculation" in js_response.text
+    assert "runFbaEstimate" in js_response.text
+    assert "initPageFromHash" in js_response.text
     assert "window.scrollTo" in js_response.text
     assert css_response.status_code == 200
     assert ".dashboard" in css_response.text
@@ -41,6 +44,8 @@ def test_frontend_static_assets_are_served():
     assert ".listing-optimizer-grid" in css_response.text
     assert ".ad-optimizer-grid" in css_response.text
     assert ".supply-chain-grid" in css_response.text
+    assert ".profit-calculator-grid" in css_response.text
+    assert ".fba-estimator-grid" in css_response.text
     side_nav_block = css_response.text.split(".side-nav {", 1)[1].split("}", 1)[0]
     assert "overflow-y: auto" in side_nav_block
 
@@ -133,6 +138,32 @@ def test_frontend_dashboard_contains_supply_chain_analysis_entry():
     assert "分析供应链" in response.text
 
 
+def test_frontend_dashboard_contains_profit_calculator_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "page-profit-calculator" in response.text
+    assert "利润核算" in response.text
+    assert "profit-product-name" in response.text
+    assert "保存核算" in response.text
+
+
+def test_frontend_dashboard_contains_fba_estimator_entry():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "page-fba-estimator" in response.text
+    assert "FBA 成本估算" in response.text
+    assert "fba-weight" in response.text
+    assert "FBA Size Tier 完整对照表" in response.text
+
+
 def test_supply_chain_analysis_endpoint_generates_plan():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
@@ -172,6 +203,143 @@ def test_supply_chain_analysis_endpoint_rejects_empty_product():
             "logistics_method": "FBA sea freight",
             "budget": 12000,
         },
+    )
+
+    assert response.status_code == 400
+
+
+def test_profit_calculation_endpoint_saves_snapshot():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/profit/calculate",
+        json={
+            "product_name": "Insulated tumbler",
+            "sku": "TUMBLER-001",
+            "marketplace": "US",
+            "sale_price": 29.99,
+            "landed_cost": 7.5,
+            "first_leg_freight": 1.2,
+            "referral_rate": 0.15,
+            "weight_oz": 12,
+            "length_in": 8,
+            "width_in": 6,
+            "height_in": 3,
+            "ad_acos": 0.15,
+            "return_rate": 0.03,
+            "monthly_units": 300,
+            "monthly_fixed_cost": 300,
+            "q4_peak": False,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] > 0
+    assert payload["product_name"] == "Insulated tumbler"
+    assert payload["sku"] == "TUMBLER-001"
+    assert payload["input"]["sale_price"] == 29.99
+    assert payload["result"]["unit_profit"] > 0
+    assert payload["result"]["monthly_profit"] > 0
+    assert payload["result"]["roi_percent"] > 0
+    assert payload["result"]["fba_tier"]
+    assert payload["result"]["breakdown"]
+    assert payload["result"]["advice"]
+
+
+def test_profit_calculation_endpoint_rejects_invalid_payload():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    empty_name = client.post(
+        "/api/profit/calculate",
+        json={"product_name": " ", "sale_price": 29.99, "landed_cost": 7.5},
+    )
+    invalid_price = client.post(
+        "/api/profit/calculate",
+        json={"product_name": "Insulated tumbler", "sale_price": 0, "landed_cost": 7.5},
+    )
+
+    assert empty_name.status_code == 400
+    assert invalid_price.status_code == 400
+
+
+def test_profit_calculations_endpoint_lists_recent_snapshots():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    first = client.post(
+        "/api/profit/calculate",
+        json={
+            "product_name": "Insulated tumbler",
+            "sku": "TUMBLER-001",
+            "sale_price": 29.99,
+            "landed_cost": 7.5,
+            "first_leg_freight": 1.2,
+            "monthly_units": 300,
+        },
+    )
+    second = client.post(
+        "/api/profit/calculate",
+        json={
+            "product_name": "Desk organizer",
+            "sku": "DESK-001",
+            "sale_price": 19.99,
+            "landed_cost": 4.5,
+            "first_leg_freight": 0.8,
+            "monthly_units": 200,
+        },
+    )
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    response = client.get("/api/profit/calculations", params={"limit": 10})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["product_name"] == "Desk organizer"
+    assert payload["items"][1]["product_name"] == "Insulated tumbler"
+
+
+def test_fba_estimate_endpoint_returns_cost_breakdown():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/fba/estimate",
+        json={
+            "weight_oz": 12,
+            "length_in": 10,
+            "width_in": 6,
+            "height_in": 2,
+            "category": "general",
+            "season": "normal",
+            "sale_price": 29.99,
+            "landed_cost": 8.5,
+            "monthly_units": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["size_tier"] == "大号标准"
+    assert payload["total_fba_cost"] > 0
+    assert payload["fulfillment_fee"] > 0
+    assert payload["storage_fee"] > 0
+    assert payload["referral_fee"] == 4.5
+    assert payload["profit"]["unit_profit"] > 0
+    assert payload["tier_table"]
+
+
+def test_fba_estimate_endpoint_rejects_invalid_dimensions():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/fba/estimate",
+        json={"weight_oz": 0, "length_in": 10, "width_in": 6, "height_in": 2},
     )
 
     assert response.status_code == 400
