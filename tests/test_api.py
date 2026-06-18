@@ -36,6 +36,12 @@ def test_frontend_static_assets_are_served():
     assert "saveProfitCalculation" in js_response.text
     assert "runFbaEstimate" in js_response.text
     assert "initPageFromHash" in js_response.text
+    assert "getCurrentPageName" in js_response.text
+    assert "isPageVisible" in js_response.text
+    assert "shouldRefreshDashboardOnLoad" in js_response.text
+    assert "pushState" in js_response.text
+    assert "aria-current" in js_response.text
+    assert "document.title" in js_response.text
     assert "window.scrollTo" in js_response.text
     assert css_response.status_code == 200
     assert ".dashboard" in css_response.text
@@ -46,6 +52,22 @@ def test_frontend_static_assets_are_served():
     assert ".supply-chain-grid" in css_response.text
     assert ".profit-calculator-grid" in css_response.text
     assert ".fba-estimator-grid" in css_response.text
+    assert ".page.is-visible" in css_response.text
+    assert ".nav-item[aria-current=\"page\"]" in css_response.text
+    assert ".ui-fluid" in css_response.text
+    assert "--surface-raised" in css_response.text
+    assert "--accent-blue" in css_response.text
+    assert "--accent-amber" in css_response.text
+    assert ".app-shell::before" in css_response.text
+    assert ".dashboard::before" in css_response.text
+    assert ".nav-section-title::after" in css_response.text
+    assert ".primary-button::after" in css_response.text
+    assert ".summary-card::before" in css_response.text
+    assert ".summary-card::after" in css_response.text
+    assert ".fba-cost-grid article::before" in css_response.text
+    assert ".profit-result-hero::before" in css_response.text
+    assert "@media (prefers-reduced-motion: reduce)" in css_response.text
+    assert "@media (max-width: 520px)" in css_response.text
     side_nav_block = css_response.text.split(".side-nav {", 1)[1].split("}", 1)[0]
     assert "overflow-y: auto" in side_nav_block
 
@@ -105,7 +127,7 @@ def test_ad_optimization_endpoint_generates_strategy():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["metrics"]["daily_budget"] == 50
+    assert payload["metrics"]["daily_spend"] == 50
     assert payload["keyword_bids"]
     assert payload["negative_keywords"]
     assert payload["budget_allocation"]["items"]
@@ -559,3 +581,81 @@ def test_daily_run_generates_metrics_alerts_agent_recommendations_and_report():
     assert reset_response.status_code == 200
     assert reset_response.json()["deleted_alerts"] >= 1
     assert client.get("/alerts", params={"date": "2026-01-07"}).json() == []
+
+
+# ==================== 销量监控 ====================
+
+
+def test_sales_monitor_overview_returns_empty_when_no_data():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/api/sales-monitor/overview")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["alerts"] == []
+    assert data["trend"] == []
+    assert data["summary"]["alert_count"] == 0
+    assert data["summary"]["affected_skus"] == 0
+
+
+def test_sales_monitor_overview_returns_alerts_after_daily_run():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    # 导入数据：SKU-001 前 7 天销量 100，第 8 天销量 10（触发 sales_drop）
+    sku_csv = b"SKU,Title,Price\nSKU-001,Test Product,29.99\n"
+    assert client.post("/imports/sku", files={"file": ("sku.csv", sku_csv, "text/csv")}).status_code == 200
+
+    sales_lines = ["SKU,Date,Units Sold,Sales Amount"]
+    for d in range(1, 8):
+        sales_lines.append(f"SKU-001,2026-01-{d:02d},100,2999.00")
+    sales_lines.append("SKU-001,2026-01-08,10,299.90")
+    sales_csv = "\n".join(sales_lines).encode()
+    assert client.post("/imports/sales", files={"file": ("sales.csv", sales_csv, "text/csv")}).status_code == 200
+
+    ads_csv = b"SKU,Date,Impressions,Clicks,Spend,Ad Orders,Ad Sales\nSKU-001,2026-01-08,1000,30,45,5,150\n"
+    assert client.post("/imports/ads", files={"file": ("ads.csv", ads_csv, "text/csv")}).status_code == 200
+    inv_csv = b"SKU,Date,Available Inventory,Inbound Inventory,Reserved Inventory\nSKU-001,2026-01-08,100,0,0\n"
+    assert client.post("/imports/inventory", files={"file": ("inv.csv", inv_csv, "text/csv")}).status_code == 200
+
+    run_resp = client.post("/jobs/daily-run", params={"run_date": "2026-01-08"})
+    assert run_resp.status_code == 200
+
+    overview = client.get("/api/sales-monitor/overview", params={"days": 7, "end_date": "2026-01-08"}).json()
+    assert overview["summary"]["alert_count"] >= 1
+    assert len(overview["alerts"]) >= 1
+
+    sales_alerts = [a for a in overview["alerts"] if a["alert_type"] == "sales_drop"]
+    assert len(sales_alerts) >= 1
+    assert sales_alerts[0]["sku"] == "SKU-001"
+    assert sales_alerts[0]["severity"] == "high"
+    assert "rule_context" in sales_alerts[0]
+
+
+def test_sales_monitor_metrics_returns_sku_detail():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    sku_csv = b"SKU,Title,Price\nSKU-001,Test,19.99\n"
+    assert client.post("/imports/sku", files={"file": ("sku.csv", sku_csv, "text/csv")}).status_code == 200
+    sales_csv = b"SKU,Date,Units Sold,Sales Amount\nSKU-001,2026-01-07,50,999.50\n"
+    assert client.post("/imports/sales", files={"file": ("sales.csv", sales_csv, "text/csv")}).status_code == 200
+
+    resp = client.get("/api/sales-monitor/metrics/SKU-001", params={"end_date": "2026-01-07"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["sku"] == "SKU-001"
+    assert len(data["sales"]) == 1
+    assert data["sales"][0]["units_sold"] == 50
+
+
+def test_sales_monitor_page_html_present():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+    assert "page-sales-monitor" in response.text
+    assert "sm-alert-count" in response.text
+    assert "sm-trend-chart" in response.text

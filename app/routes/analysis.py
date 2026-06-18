@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -17,8 +18,8 @@ from app.analysis.listing_optimizer import ListingOptimizer
 from app.analysis.product_research import ProductResearchAnalyzer
 from app.analysis.profit_calculator import ProfitCalculationInput, ProfitCalculator
 from app.analysis.supply_chain import SupplyChainAnalyzer
-from app.db.models import ProfitCalculation, SkuMaster
-from app.deps import get_session
+from app.db.models import AlertTask, ProfitCalculation, SalesDaily, SkuMaster
+from app.deps import get_session, get_session_factory
 
 router = APIRouter(prefix="/api", tags=["分析工具"])
 
@@ -26,7 +27,6 @@ battlefield_analyzer = BattlefieldAnalyzer()
 diagnosis_analyzer = DiagnosisAnalyzer()
 product_research_analyzer = ProductResearchAnalyzer()
 listing_optimizer = ListingOptimizer()
-ad_optimizer = AdOptimizer()
 supply_chain_analyzer = SupplyChainAnalyzer()
 profit_calculator = ProfitCalculator()
 fba_estimator = FbaEstimator()
@@ -61,6 +61,13 @@ class AdOptimizeRequest(BaseModel):
     marketplace: str = "US"
     category: str = "all"
     ad_type: str = "Sponsored Products"
+    sku: str = ""
+    days: int = 30
+
+
+class AdAnalyzeRequest(BaseModel):
+    sku: str
+    days: int = 30
 
 
 class SupplyChainAnalyzeRequest(BaseModel):
@@ -189,22 +196,52 @@ def optimize_listing(payload: ListingOptimizeRequest) -> dict:
 
 @router.post("/ads/optimize")
 def optimize_ads(payload: AdOptimizeRequest) -> dict:
-    """基于预算、目标 ACoS 和关键词生成 Amazon 广告投放策略。"""
+    """基于预算、目标 ACoS 和关键词生成 Amazon 广告投放策略。
+
+    如果提供 sku 参数，会从数据库读取真实广告数据进行分析，结果更精准。
+    不提供 sku 时退化为基于规则的估算模式。
+    """
     product_keyword = payload.product_keyword.strip()
     if not product_keyword:
         raise HTTPException(status_code=400, detail="产品关键词不能为空")
 
     try:
-        return ad_optimizer.optimize(
+        optimizer = AdOptimizer(session_factory=get_session_factory())
+        return optimizer.optimize(
             product_keyword=product_keyword,
             daily_budget=payload.daily_budget,
             target_acos=payload.target_acos,
             marketplace=payload.marketplace,
             category=payload.category,
             ad_type=payload.ad_type,
+            sku=payload.sku or None,
+            days=payload.days,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/ads/analyze")
+def analyze_ads(payload: AdAnalyzeRequest) -> dict:
+    """分析单个 SKU 的广告表现，输出诊断报告。
+
+    基于真实广告数据，返回健康度评分、趋势分析、竞价调整建议、
+    否定词挖掘和优化建议。
+    """
+    sku = payload.sku.strip()
+    if not sku:
+        raise HTTPException(status_code=400, detail="SKU 不能为空")
+
+    try:
+        optimizer = AdOptimizer(session_factory=get_session_factory())
+        result = optimizer.analyze_sku_ads(sku=sku, days=payload.days)
+        if "error" in result:
+            raise HTTPException(status_code=404, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"分析失败: {exc}") from exc
 
 
 @router.post("/supply-chain/analyze")
@@ -331,6 +368,145 @@ def _validate_fba_input(input_data: dict) -> None:
     for field, message in non_negative_fields.items():
         if input_data[field] < 0:
             raise HTTPException(status_code=400, detail=message)
+
+
+@router.get("/sales-monitor/overview")
+def sales_monitor_overview(
+    days: int = 30,
+    end_date: str | None = None,
+    session: Session = Depends(get_session),
+) -> dict:
+    """销量监控概览：最近 N 天的告警和趋势。"""
+    from sqlalchemy import func
+
+    bounded_days = min(max(days, 7), 90)
+    ref_date = _parse_date(end_date) or date.today()
+    cutoff = ref_date - timedelta(days=bounded_days)
+
+    # 查询销量相关告警
+    sales_alert_types = ("sales_drop", "sales_declining_3d")
+    alerts = session.scalars(
+        select(AlertTask)
+        .where(AlertTask.alert_type.in_(sales_alert_types))
+        .where(AlertTask.date >= cutoff)
+        .order_by(AlertTask.date.desc(), AlertTask.severity.desc())
+        .limit(100)
+    ).all()
+
+    # 查询销量趋势（按日期聚合）
+    trend_rows = session.execute(
+        select(
+            SalesDaily.date,
+            func.sum(SalesDaily.units_sold).label("total_units"),
+            func.sum(SalesDaily.sales_amount).label("total_sales"),
+            func.count(func.distinct(SalesDaily.sku)).label("sku_count"),
+        )
+        .where(SalesDaily.date >= cutoff)
+        .group_by(SalesDaily.date)
+        .order_by(SalesDaily.date)
+    ).all()
+
+    # 汇总统计
+    alert_count = len(alerts)
+    affected_skus = len({a.sku for a in alerts})
+    high_count = sum(1 for a in alerts if a.severity == "high")
+
+    return {
+        "alerts": [
+            {
+                "id": a.id,
+                "date": a.date.isoformat(),
+                "sku": a.sku,
+                "alert_type": a.alert_type,
+                "severity": a.severity,
+                "reason": a.reason,
+                "rule_context": a.rule_context or {},
+                "agent_result": a.agent_result or {},
+                "status": a.status,
+            }
+            for a in alerts
+        ],
+        "trend": [
+            {
+                "date": row.date.isoformat(),
+                "total_units": int(row.total_units or 0),
+                "total_sales": round(float(row.total_sales or 0), 2),
+                "sku_count": int(row.sku_count or 0),
+            }
+            for row in trend_rows
+        ],
+        "summary": {
+            "alert_count": alert_count,
+            "affected_skus": affected_skus,
+            "high_count": high_count,
+            "days": bounded_days,
+        },
+    }
+
+
+@router.get("/sales-monitor/metrics/{sku}")
+def sales_monitor_metrics(
+    sku: str,
+    days: int = 30,
+    end_date: str | None = None,
+    session: Session = Depends(get_session),
+) -> dict:
+    """指定 SKU 的销量指标和告警历史。"""
+    bounded_days = min(max(days, 7), 90)
+    ref_date = _parse_date(end_date) or date.today()
+    cutoff = ref_date - timedelta(days=bounded_days)
+
+    # 销量数据
+    sales = session.scalars(
+        select(SalesDaily)
+        .where(SalesDaily.sku == sku)
+        .where(SalesDaily.date >= cutoff)
+        .order_by(SalesDaily.date)
+    ).all()
+
+    # 告警历史
+    sales_alert_types = ("sales_drop", "sales_declining_3d")
+    alerts = session.scalars(
+        select(AlertTask)
+        .where(AlertTask.sku == sku)
+        .where(AlertTask.alert_type.in_(sales_alert_types))
+        .where(AlertTask.date >= cutoff)
+        .order_by(AlertTask.date.desc())
+    ).all()
+
+    return {
+        "sku": sku,
+        "sales": [
+            {
+                "date": s.date.isoformat(),
+                "units_sold": s.units_sold,
+                "sales_amount": round(s.sales_amount, 2),
+            }
+            for s in sales
+        ],
+        "alerts": [
+            {
+                "id": a.id,
+                "date": a.date.isoformat(),
+                "alert_type": a.alert_type,
+                "severity": a.severity,
+                "reason": a.reason,
+                "agent_result": a.agent_result or {},
+                "status": a.status,
+            }
+            for a in alerts
+        ],
+    }
+
+
+def _parse_date(value: str | None) -> date | None:
+    """将 YYYY-MM-DD 字符串解析为 date，失败返回 None。"""
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
 
 
 def _profit_calculation_dict(row: ProfitCalculation) -> dict:

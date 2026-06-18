@@ -11,6 +11,8 @@ const endpoints = {
   profitCalculate: "/api/profit/calculate",
   profitCalculations: "/api/profit/calculations",
   fbaEstimate: "/api/fba/estimate",
+  salesMonitorOverview: "/api/sales-monitor/overview",
+  salesMonitorMetrics: "/api/sales-monitor/metrics",
 };
 
 const statusOptions = [
@@ -32,6 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener("click", activateNavItem);
   });
   window.addEventListener("hashchange", initPageFromHash);
+  window.addEventListener("popstate", initPageFromHash);
   document.getElementById("run-analysis").addEventListener("click", runAnalysis);
   document.getElementById("load-demo").addEventListener("click", loadDemo);
   document.getElementById("refresh-results").addEventListener("click", refreshResults);
@@ -45,8 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("alert-search").addEventListener("input", renderFilteredAlerts);
   document.getElementById("severity-filter").addEventListener("change", renderFilteredAlerts);
   document.getElementById("status-filter").addEventListener("change", renderFilteredAlerts);
-  initPageFromHash();
-  refreshResults();
+  const initialPageName = initPageFromHash();
+  if (shouldRefreshDashboardOnLoad(initialPageName)) {
+    refreshResults();
+  }
 });
 
 function initDragAndDrop(form) {
@@ -142,33 +147,63 @@ function activateNavItem(event) {
 
   const navItem = event.currentTarget;
   const pageName = navItem.dataset.page;
+  const targetHash = navItem.getAttribute("href") || `#${pageName}`;
+  if (window.location.hash !== targetHash) {
+    window.history.pushState(null, "", targetHash);
+  }
   showPage(pageName, navItem);
+}
+
+function getCurrentPageName() {
+  return window.location.hash.replace("#", "") || "overview";
+}
+
+function findNavItem(pageName) {
+  return Array.from(document.querySelectorAll(".nav-item")).find((item) => item.dataset.page === pageName);
+}
+
+function shouldRefreshDashboardOnLoad(pageName = getCurrentPageName()) {
+  return ["overview", "analytics", "tasks"].includes(pageName);
+}
+
+function isPageVisible(pageName) {
+  const page = document.getElementById("page-" + pageName);
+  return Boolean(page && page.style.display !== "none");
 }
 
 function initPageFromHash() {
-  const pageName = window.location.hash.replace("#", "");
-  if (!pageName) return;
-  const navItem = document.querySelector(`.nav-item[data-page="${CSS.escape(pageName)}"]`);
-  if (!navItem) return;
-  showPage(pageName, navItem);
+  const pageName = getCurrentPageName();
+  const navItem = findNavItem(pageName) || findNavItem("overview");
+  if (!navItem) return "overview";
+  const resolvedPageName = navItem.dataset.page || "overview";
+  showPage(resolvedPageName, navItem);
+  return resolvedPageName;
 }
 
 function showPage(pageName, navItem) {
+  const targetPage = document.getElementById("page-" + pageName);
+  if (!targetPage) return;
+
   // 更新导航状态
-  document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("is-active"));
-  if (navItem) navItem.classList.add("is-active");
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    const isActiveItem = item === navItem;
+    item.classList.toggle("is-active", isActiveItem);
+    if (isActiveItem) {
+      item.setAttribute("aria-current", "page");
+    } else {
+      item.removeAttribute("aria-current");
+    }
+  });
   document.getElementById("sidebar").classList.remove("is-open");
 
-  // 隐藏所有页面
+  // 切换页面可见状态
   document.querySelectorAll(".page").forEach((page) => {
-    page.style.display = "none";
+    const isTargetPage = page === targetPage;
+    page.style.display = isTargetPage ? "block" : "none";
+    page.classList.toggle("is-visible", isTargetPage);
+    page.setAttribute("aria-hidden", String(!isTargetPage));
   });
 
-  // 显示目标页面
-  const targetPage = document.getElementById("page-" + pageName);
-  if (targetPage) {
-    targetPage.style.display = "block";
-  }
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 
   // 更新顶部标题
@@ -176,6 +211,7 @@ function showPage(pageName, navItem) {
   if (titleInfo) {
     document.getElementById("page-title").textContent = titleInfo.title;
     document.getElementById("page-subtitle").textContent = titleInfo.subtitle;
+    document.title = `${titleInfo.title} · SellAI Pro`;
   }
 
   // 特殊页面初始化
@@ -188,8 +224,11 @@ function showPage(pageName, navItem) {
   if (pageName === "profit-calculator") {
     loadProfitHistory();
   }
-  if (pageName === "fba-estimator") {
+  if (pageName === "fba-estimator" && isPageVisible("fba-estimator")) {
     runFbaEstimate();
+  }
+  if (pageName === "sales-monitor") {
+    initSalesMonitor();
   }
 }
 
@@ -1055,6 +1094,166 @@ function setProfitStatus(message, ok) {
   status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
 }
 
+// ==================== 销量监控 ====================
+
+let smOverviewData = null;
+
+async function initSalesMonitor() {
+  const btn = document.getElementById("sm-refresh");
+  if (btn && !btn._bound) {
+    btn.addEventListener("click", loadSalesMonitorOverview);
+    btn._bound = true;
+  }
+  await loadSalesMonitorOverview();
+}
+
+async function loadSalesMonitorOverview() {
+  const listEl = document.getElementById("sm-alerts-list");
+  if (listEl) listEl.innerHTML = '<p class="sm-empty">加载中…</p>';
+
+  try {
+    const data = await requestJson("/api/sales-monitor/overview?days=30");
+    smOverviewData = data;
+
+    // 统计卡片
+    const s = data.summary || {};
+    setText("sm-alert-count", s.alert_count ?? "--");
+    setText("sm-affected-skus", s.affected_skus ?? "--");
+    setText("sm-high-count", s.high_count ?? "--");
+
+    // 告警列表
+    renderSalesAlerts(data.alerts || []);
+
+    // SKU 下拉
+    populateSkuSelect(data.alerts || []);
+  } catch (e) {
+    if (listEl) listEl.innerHTML = `<p class="sm-empty">加载失败：${escapeHtml(String(e))}</p>`;
+  }
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function renderSalesAlerts(alerts) {
+  const listEl = document.getElementById("sm-alerts-list");
+  if (!listEl) return;
+
+  if (!alerts.length) {
+    listEl.innerHTML = '<p class="sm-empty">暂无销量告警，一切正常 🎉</p>';
+    return;
+  }
+
+  const typeLabels = { sales_drop: "销量骤降", sales_declining_3d: "连续下跌" };
+  const sevLabels = { high: "高", medium: "中", low: "低" };
+  const sevClass = { high: "sm-sev--high", medium: "sm-sev--medium", low: "sm-sev--low" };
+
+  listEl.innerHTML = alerts.map((a) => {
+    const summary = (a.agent_result && a.agent_result.summary) || a.reason || "暂无分析";
+    return `
+      <article class="sm-alert-card ${sevClass[a.severity] || ""}">
+        <div class="sm-alert-head">
+          <span class="sm-alert-type">${typeLabels[a.alert_type] || a.alert_type}</span>
+          <span class="sm-alert-sku">${escapeHtml(a.sku)}</span>
+          <span class="sm-alert-sev">${sevLabels[a.severity] || a.severity}</span>
+          <span class="sm-alert-date">${a.date}</span>
+        </div>
+        <p class="sm-alert-summary">${escapeHtml(summary)}</p>
+        ${a.status !== "pending" ? `<span class="sm-alert-status">${a.status}</span>` : ""}
+      </article>
+    `;
+  }).join("");
+}
+
+function populateSkuSelect(alerts) {
+  const sel = document.getElementById("sm-sku-select");
+  if (!sel) return;
+
+  const skus = [...new Set(alerts.map((a) => a.sku))].sort();
+  sel.innerHTML = '<option value="">选择 SKU 查看详情</option>';
+  skus.forEach((sku) => {
+    sel.appendChild(new Option(sku, sku));
+  });
+
+  if (!sel._bound) {
+    sel.addEventListener("change", () => {
+      const sku = sel.value;
+      if (sku) {
+        loadSalesMonitorSkuMetrics(sku);
+      } else {
+        const detail = document.getElementById("sm-sku-detail");
+        if (detail) detail.style.display = "none";
+      }
+    });
+    sel._bound = true;
+  }
+}
+
+async function loadSalesMonitorSkuMetrics(sku) {
+  const detailEl = document.getElementById("sm-sku-detail");
+  const chartEl = document.getElementById("sm-trend-chart");
+  const alertsEl = document.getElementById("sm-sku-alerts");
+  if (!detailEl) return;
+
+  detailEl.style.display = "block";
+  if (chartEl) chartEl.innerHTML = '<p class="sm-empty">加载中…</p>';
+
+  try {
+    const data = await requestJson(`/api/sales-monitor/metrics/${encodeURIComponent(sku)}?days=30`);
+    renderSalesTrend(data.sales || [], chartEl);
+    renderSkuAlerts(data.alerts || [], alertsEl);
+  } catch (e) {
+    if (chartEl) chartEl.innerHTML = `<p class="sm-empty">加载失败：${escapeHtml(String(e))}</p>`;
+  }
+}
+
+function renderSalesTrend(sales, container) {
+  if (!container) return;
+  if (!sales.length) {
+    container.innerHTML = '<p class="sm-empty">暂无销量数据</p>';
+    return;
+  }
+
+  const maxUnits = Math.max(...sales.map((s) => s.units_sold), 1);
+
+  container.innerHTML = `
+    <div class="sm-bars">
+      ${sales.map((s) => {
+        const pct = Math.round((s.units_sold / maxUnits) * 100);
+        return `
+          <div class="sm-bar-col">
+            <div class="sm-bar" style="height:${pct}%" title="${s.date}: ${s.units_sold} 单 / $${s.sales_amount}">
+              <span class="sm-bar-val">${s.units_sold}</span>
+            </div>
+            <span class="sm-bar-label">${s.date.slice(5)}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderSkuAlerts(alerts, container) {
+  if (!container) return;
+  if (!alerts.length) {
+    container.innerHTML = '<p class="sm-empty">该 SKU 无近期告警</p>';
+    return;
+  }
+
+  const typeLabels = { sales_drop: "销量骤降", sales_declining_3d: "连续下跌" };
+  container.innerHTML = alerts.map((a) => {
+    const summary = (a.agent_result && a.agent_result.summary) || a.reason || "";
+    return `
+      <article class="sm-sku-alert-item">
+        <strong>${typeLabels[a.alert_type] || a.alert_type}</strong>
+        <span>${a.date}</span>
+        ${summary ? `<p>${escapeHtml(summary)}</p>` : ""}
+      </article>
+    `;
+  }).join("");
+}
+
 // ==================== FBA 成本估算 ====================
 
 function initFbaEstimator() {
@@ -1062,7 +1261,6 @@ function initFbaEstimator() {
   if (!form) return;
   form.addEventListener("input", debounceFbaEstimate);
   form.addEventListener("change", runFbaEstimate);
-  runFbaEstimate();
 }
 
 let fbaEstimateTimer = null;

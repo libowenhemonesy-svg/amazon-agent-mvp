@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Amazon Agent 运营台</title>
-    <link rel="stylesheet" href="/static/styles.css?v=fba-estimator-20260605" />
+    <link rel="stylesheet" href="/static/styles.css?v=canva-polish-20260608" />
   </head>
   <body>
     <div class="app-shell">
@@ -996,39 +996,63 @@
             <div>
               <span class="eyebrow">Sales Monitor</span>
               <h2>销售监控</h2>
+              <p class="page-heading-desc">实时监控销量异常，AI Agent 自动诊断根因并给出建议</p>
             </div>
           </section>
-          <div class="panel">
-            <h3>销售监控 Agent</h3>
-            <p>实时监控销售数据，自动识别异常波动并预警</p>
-            <div class="agent-features">
-              <div class="feature-item">
-                <span class="feature-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                </span>
-                <div>
-                  <strong>销量异常检测</strong>
-                  <p>自动识别销量骤降、连续下滑等异常</p>
-                </div>
+
+          <!-- 概览统计 -->
+          <div class="sm-stats-grid">
+            <article class="sm-stat-card">
+              <span class="sm-stat-icon sm-stat-icon--alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </span>
+              <div>
+                <strong id="sm-alert-count">--</strong>
+                <span>活跃告警</span>
               </div>
-              <div class="feature-item">
-                <span class="feature-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </span>
-                <div>
-                  <strong>智能预警</strong>
-                  <p>基于历史数据和行业基准自动预警</p>
-                </div>
+            </article>
+            <article class="sm-stat-card">
+              <span class="sm-stat-icon sm-stat-icon--sku">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+              </span>
+              <div>
+                <strong id="sm-affected-skus">--</strong>
+                <span>受影响 SKU</span>
               </div>
-              <div class="feature-item">
-                <span class="feature-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                </span>
-                <div>
-                  <strong>诊断报告</strong>
-                  <p>生成详细的销售诊断报告和优化建议</p>
-                </div>
+            </article>
+            <article class="sm-stat-card">
+              <span class="sm-stat-icon sm-stat-icon--high">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </span>
+              <div>
+                <strong id="sm-high-count">--</strong>
+                <span>高严重度</span>
               </div>
+            </article>
+          </div>
+
+          <!-- 告警列表 -->
+          <div class="panel" style="margin-top:20px">
+            <div class="panel-header">
+              <h3>销量告警</h3>
+              <button id="sm-refresh" class="secondary-button" type="button">刷新</button>
+            </div>
+            <div id="sm-alerts-list" class="sm-alerts-list">
+              <p class="sm-empty">加载中…</p>
+            </div>
+          </div>
+
+          <!-- SKU 详情面板 -->
+          <div class="panel" style="margin-top:20px">
+            <h3>SKU 销量详情</h3>
+            <div class="sm-sku-select-row">
+              <select id="sm-sku-select" class="sm-sku-select">
+                <option value="">选择 SKU 查看详情</option>
+              </select>
+            </div>
+            <div id="sm-sku-detail" class="sm-sku-detail" style="display:none">
+              <div class="sm-trend-chart" id="sm-trend-chart"></div>
+              <div id="sm-sku-alerts" class="sm-sku-alerts"></div>
             </div>
           </div>
         </div>
@@ -1843,6 +1867,6 @@
 
       </main>
     </div>
-    <script src="/static/app.js?v=fba-estimator-20260605"></script>
+    <script src="/static/app.js?v=canva-polish-20260608"></script>
   </body>
 </html>
