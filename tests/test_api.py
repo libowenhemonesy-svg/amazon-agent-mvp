@@ -659,3 +659,84 @@ def test_sales_monitor_page_html_present():
     assert "page-sales-monitor" in response.text
     assert "sm-alert-count" in response.text
     assert "sm-trend-chart" in response.text
+
+
+# ==================== 自动化任务 ====================
+
+
+def test_automation_tasks_list_returns_data():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/api/automation/tasks")
+
+    assert response.status_code == 200
+    tasks = response.json()
+    assert isinstance(tasks, list)
+    assert len(tasks) >= 1
+    task = tasks[0]
+    assert "task_id" in task
+    assert "name" in task
+    assert "task_type" in task
+    assert "schedule_time" in task
+    assert "enabled" in task
+    assert "status" in task
+
+
+def test_automation_task_enable_disable():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    tasks = client.get("/api/automation/tasks").json()
+    task_id = tasks[0]["task_id"]
+
+    # 禁用
+    resp = client.post(f"/api/automation/tasks/{task_id}/disable")
+    assert resp.status_code == 200
+    detail = client.get(f"/api/automation/tasks/{task_id}").json()
+    assert detail["enabled"] is False
+
+    # 启用
+    resp = client.post(f"/api/automation/tasks/{task_id}/enable")
+    assert resp.status_code == 200
+    detail = client.get(f"/api/automation/tasks/{task_id}").json()
+    assert detail["enabled"] is True
+
+
+def test_automation_task_run():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    tasks = client.get("/api/automation/tasks").json()
+    task_id = tasks[0]["task_id"]
+
+    resp = client.post(f"/api/automation/tasks/{task_id}/run")
+    assert resp.status_code == 200
+    result = resp.json()
+    assert "success" in result
+
+
+def test_automation_task_update_schedule():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    tasks = client.get("/api/automation/tasks").json()
+    task_id = tasks[0]["task_id"]
+
+    resp = client.patch(
+        f"/api/automation/tasks/{task_id}",
+        json={"schedule_time": "10:30"},
+    )
+    assert resp.status_code == 200
+    detail = client.get(f"/api/automation/tasks/{task_id}").json()
+    assert detail["schedule_time"] == "10:30"
+
+
+def test_automation_page_html_present():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/")
+    assert "page-automation" in response.text
+    assert "tasks-grid" in response.text
+    assert "refresh-tasks" in response.text

@@ -230,6 +230,9 @@ function showPage(pageName, navItem) {
   if (pageName === "sales-monitor") {
     initSalesMonitor();
   }
+  if (pageName === "automation") {
+    loadAutomationTasks();
+  }
 }
 
 function syncGlobalSearch(event) {
@@ -2360,6 +2363,15 @@ function renderAutomationTasks(tasks) {
           <span class="task-detail-label">错误次数</span>
           <span class="task-detail-value">${task.error_count}</span>
         </div>
+        <div class="task-detail">
+          <span class="task-detail-label">上次执行</span>
+          <span class="task-detail-value">${task.last_run ? task.last_run.replace("T", " ").slice(0, 16) : "从未执行"}</span>
+        </div>
+        ${task.last_result ? `
+        <div class="task-detail task-result">
+          <span class="task-detail-label">执行结果</span>
+          <span class="task-detail-value ${task.last_result.success === false ? "task-result-fail" : ""}">${escapeHtml(String(task.last_result.message || task.last_result.error || JSON.stringify(task.last_result)).slice(0, 80))}</span>
+        </div>` : ""}
       </div>
       <div class="task-actions">
         <button class="task-btn primary" onclick="runTask('${task.task_id}')">
@@ -2432,9 +2444,95 @@ async function runTask(taskId) {
   }
 }
 
-function editTask(taskId) {
-  // TODO: 实现任务编辑对话框
-  alert("编辑功能开发中");
+async function editTask(taskId) {
+  try {
+    const resp = await fetch(`/api/automation/tasks/${taskId}`);
+    if (!resp.ok) throw new Error("获取任务详情失败");
+    const task = await resp.json();
+    showEditTaskModal(task);
+  } catch (e) {
+    alert("加载任务详情失败: " + e.message);
+  }
+}
+
+function showEditTaskModal(task) {
+  // 移除已有弹窗
+  const existing = document.getElementById("edit-task-modal");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "edit-task-modal";
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>编辑任务：${escapeHtml(task.name)}</h3>
+        <button class="modal-close" onclick="closeEditTaskModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="modal-label">
+          执行时间
+          <input type="time" id="edit-schedule-time" value="${task.schedule_time || "08:00"}" class="modal-input" />
+        </label>
+        <label class="modal-label">
+          启用状态
+          <label class="modal-toggle-label">
+            <input type="checkbox" id="edit-enabled" ${task.enabled ? "checked" : ""} />
+            <span>${task.enabled ? "已启用" : "已禁用"}</span>
+          </label>
+        </label>
+        <label class="modal-label">
+          配置参数（JSON）
+          <textarea id="edit-config" class="modal-textarea" rows="4">${JSON.stringify(task.config || {}, null, 2)}</textarea>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="task-btn" onclick="closeEditTaskModal()">取消</button>
+        <button class="task-btn primary" onclick="saveEditTask('${task.task_id}')">保存</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeEditTaskModal();
+  });
+}
+
+function closeEditTaskModal() {
+  const modal = document.getElementById("edit-task-modal");
+  if (modal) modal.remove();
+}
+
+async function saveEditTask(taskId) {
+  const scheduleTime = document.getElementById("edit-schedule-time")?.value;
+  const enabled = document.getElementById("edit-enabled")?.checked;
+  const configText = document.getElementById("edit-config")?.value;
+
+  let config;
+  try {
+    config = configText ? JSON.parse(configText) : undefined;
+  } catch {
+    alert("配置参数 JSON 格式错误");
+    return;
+  }
+
+  const body = {};
+  if (scheduleTime) body.schedule_time = scheduleTime;
+  if (typeof enabled === "boolean") body.enabled = enabled;
+  if (config !== undefined) body.config = config;
+
+  try {
+    const resp = await fetch(`/api/automation/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error((await resp.json()).detail || "保存失败");
+    closeEditTaskModal();
+    loadAutomationTasks();
+  } catch (e) {
+    alert("保存失败: " + e.message);
+  }
 }
 
 // 在 DOMContentLoaded 中初始化自动化任务

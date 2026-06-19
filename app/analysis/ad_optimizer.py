@@ -7,14 +7,14 @@
 """
 from __future__ import annotations
 
+import logging
 import re
-import math
-from collections import defaultdict
 from datetime import date, timedelta
 from typing import Any
 
-from sqlalchemy import select, func
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 
 class AdOptimizer:
@@ -36,18 +36,6 @@ class AdOptimizer:
         "review", "manual", "wholesale", "industrial",
         "recipe", "how to", "homemade", "second hand",
     ]
-
-    # ── 竞价调整幅度 ──────────────────────────────────────────
-    _BID_ADJUST_RULES = {
-        # (acos_ratio_min, acos_ratio_max, ctr_status, cvr_status) -> (adjust_pct, reason)
-        "high_acos_low_cvr": (-0.25, "ACOS高+转化低，大幅降价"),
-        "high_acos_ok_cvr": (-0.15, "ACOS高但转化尚可，适度降价"),
-        "low_acos_high_cvr": (+0.20, "ACOS低+转化好，加价抢量"),
-        "low_acos_ok_cvr": (+0.10, "ACOS低，可以加价测试"),
-        "no_orders_high_clicks": (-0.30, "高点击无订单，大幅降价或否定"),
-        "low_impressions": (+0.15, "曝光不足，加价获取流量"),
-        "stable": (0.00, "指标稳定，维持出价"),
-    }
 
     def __init__(self, session_factory=None):
         """初始化优化器。
@@ -90,10 +78,14 @@ class AdOptimizer:
         budget = round(float(daily_budget), 2)
         acos_percent = round(float(target_acos) * 100)
 
-        # ── 加载真实数据（如果有） ──
-        ads_data = self._load_ads_data(sku, days) if sku else []
-        sales_data = self._load_sales_data(sku, days) if sku else []
-        sku_info = self._load_sku_info(sku) if sku else {}
+        # ── 一次性加载真实数据（如果有） ──
+        if sku:
+            all_data = self.load_all_data(sku, days)
+            ads_data = all_data["ads"]
+            sales_data = all_data["sales"]
+            sku_info = all_data["sku_info"]
+        else:
+            ads_data, sales_data, sku_info = [], [], {}
 
         # ── 计算核心指标 ──
         metrics = self._calculate_metrics(ads_data, sales_data, budget, target_acos)
@@ -128,6 +120,12 @@ class AdOptimizer:
         # ── 趋势分析 ──
         trend_analysis = self._analyze_trends(ads_data, sales_data)
 
+        # ── 盈亏平衡 ACoS ──
+        breakeven_acos = self._calculate_breakeven_acos(sku_info)
+
+        # ── 预算消耗分析 ──
+        budget_pacing = self._analyze_budget_pacing(ads_data, sku_info)
+
         # ── 生成报告 ──
         report = self._build_report(
             keyword=keyword,
@@ -159,6 +157,8 @@ class AdOptimizer:
             "optimization_focus": optimization_focus,
             "risk_controls": risk_controls,
             "trend_analysis": trend_analysis,
+            "breakeven_acos": breakeven_acos,
+            "budget_pacing": budget_pacing,
             "report": report,
             "data_source": "database" if ads_data else "estimated",
             "generated_by_ai": False,
@@ -172,19 +172,22 @@ class AdOptimizer:
         if not self._session_factory:
             return {"error": "未配置数据库连接，无法分析广告数据"}
 
-        ads_data = self._load_ads_data(sku, days)
-        sales_data = self._load_sales_data(sku, days)
-        sku_info = self._load_sku_info(sku)
+        all_data = self.load_all_data(sku, days)
+        ads_data = all_data["ads"]
+        sales_data = all_data["sales"]
+        sku_info = all_data["sku_info"]
 
         if not ads_data:
             return {"error": f"SKU {sku} 最近 {days} 天无广告数据"}
 
-        metrics = self._calculate_metrics(ads_data, sales_data, 0, sku_info.get("target_acos", 0.3))
+        target_acos = sku_info.get("target_acos", 0.3)
+        metrics = self._calculate_metrics(ads_data, sales_data, 0, target_acos)
         trend = self._analyze_trends(ads_data, sales_data)
         bid_actions = self._generate_bid_actions(sku, ads_data, metrics, sku_info)
         neg_keywords = self._auto_harvest_negatives(ads_data, metrics)
-
         health = self._assess_ad_health(metrics, trend)
+        breakeven = self._calculate_breakeven_acos(sku_info)
+        pacing = self._analyze_budget_pacing(ads_data, sku_info)
 
         return {
             "sku": sku,
@@ -194,27 +197,34 @@ class AdOptimizer:
             "trend": trend,
             "bid_actions": bid_actions,
             "suggested_negatives": neg_keywords,
+            "breakeven_acos": breakeven,
+            "budget_pacing": pacing,
             "recommendations": self._generate_recommendations(health, metrics, trend, bid_actions),
         }
 
     # ═══════════════════════════════════════════════════════════
-    #  数据加载层
+    #  数据加载层（单次 DB 会话，减少往返）
     # ═══════════════════════════════════════════════════════════
 
-    def _load_ads_data(self, sku: str, days: int) -> list[dict]:
-        """从数据库加载广告数据。"""
-        from app.db.models import AdsDaily
+    def load_all_data(self, sku: str, days: int) -> dict[str, Any]:
+        """一次性加载 SKU 的广告、销售和基础信息（单次 DB 会话）。"""
+        from app.db.models import AdsDaily, SalesDaily, SkuMaster
+
+        if not self._session_factory:
+            return {"ads": [], "sales": [], "sku_info": {}}
+
         session = self._session_factory()
         try:
             end_date = date.today()
             start_date = end_date - timedelta(days=days)
-            stmt = (
+
+            # 广告数据
+            ads_rows = session.scalars(
                 select(AdsDaily)
                 .where(AdsDaily.sku == sku, AdsDaily.date >= start_date, AdsDaily.date <= end_date)
                 .order_by(AdsDaily.date)
-            )
-            rows = session.scalars(stmt).all()
-            return [
+            ).all()
+            ads_data = [
                 {
                     "date": r.date,
                     "impressions": r.impressions or 0,
@@ -223,53 +233,54 @@ class AdOptimizer:
                     "ad_orders": r.ad_orders or 0,
                     "ad_sales": r.ad_sales or 0,
                 }
-                for r in rows
+                for r in ads_rows
             ]
-        finally:
-            session.close()
 
-    def _load_sales_data(self, sku: str, days: int) -> list[dict]:
-        """从数据库加载销售数据。"""
-        from app.db.models import SalesDaily
-        session = self._session_factory()
-        try:
-            end_date = date.today()
-            start_date = end_date - timedelta(days=days)
-            stmt = (
+            # 销售数据
+            sales_rows = session.scalars(
                 select(SalesDaily)
                 .where(SalesDaily.sku == sku, SalesDaily.date >= start_date, SalesDaily.date <= end_date)
                 .order_by(SalesDaily.date)
-            )
-            rows = session.scalars(stmt).all()
-            return [
+            ).all()
+            sales_data = [
                 {"date": r.date, "units_sold": r.units_sold or 0, "sales_amount": r.sales_amount or 0}
-                for r in rows
+                for r in sales_rows
             ]
+
+            # SKU 信息
+            sku_row = session.get(SkuMaster, sku)
+            sku_info = {}
+            if sku_row:
+                sku_info = {
+                    "sku": sku_row.sku,
+                    "asin": sku_row.asin,
+                    "title": sku_row.title,
+                    "price": sku_row.price,
+                    "rating": sku_row.rating,
+                    "review_count": sku_row.review_count,
+                    "lifecycle": sku_row.lifecycle,
+                    "target_acos": sku_row.target_acos,
+                    "target_gross_margin": sku_row.target_gross_margin,
+                    "marketplace": sku_row.marketplace,
+                    "product_category": sku_row.product_category,
+                }
+
+            logger.debug("Loaded %d ads rows, %d sales rows for SKU %s", len(ads_data), len(sales_data), sku)
+            return {"ads": ads_data, "sales": sales_data, "sku_info": sku_info}
         finally:
             session.close()
 
+    def _load_ads_data(self, sku: str, days: int) -> list[dict]:
+        """从数据库加载广告数据（兼容旧调用）。"""
+        return self.load_all_data(sku, days)["ads"]
+
+    def _load_sales_data(self, sku: str, days: int) -> list[dict]:
+        """从数据库加载销售数据（兼容旧调用）。"""
+        return self.load_all_data(sku, days)["sales"]
+
     def _load_sku_info(self, sku: str) -> dict:
-        """从数据库加载 SKU 基础信息。"""
-        from app.db.models import SkuMaster
-        session = self._session_factory()
-        try:
-            row = session.get(SkuMaster, sku)
-            if not row:
-                return {}
-            return {
-                "sku": row.sku,
-                "asin": row.asin,
-                "title": row.title,
-                "price": row.price,
-                "rating": row.rating,
-                "review_count": row.review_count,
-                "lifecycle": row.lifecycle,
-                "target_acos": row.target_acos,
-                "marketplace": row.marketplace,
-                "product_category": row.product_category,
-            }
-        finally:
-            session.close()
+        """从数据库加载 SKU 基础信息（兼容旧调用）。"""
+        return self.load_all_data(sku, days=30)["sku_info"]
 
     # ═══════════════════════════════════════════════════════════
     #  指标计算层
@@ -975,6 +986,73 @@ class AdOptimizer:
         return focuses
 
     # ═══════════════════════════════════════════════════════════
+    #  盈亏平衡 & 预算分析层
+    # ═══════════════════════════════════════════════════════════
+
+    def _calculate_breakeven_acos(self, sku_info: dict) -> dict[str, Any]:
+        """计算盈亏平衡 ACoS。
+
+        盈亏平衡 ACoS = 毛利率（扣除产品成本和平台费用后）。
+        当实际 ACoS < 盈亏平衡 ACoS 时，广告盈利。
+        """
+        price = sku_info.get("price", 0)
+        target_margin = sku_info.get("target_gross_margin", 0.40)
+
+        if price <= 0:
+            return {"breakeven_acos": None, "message": "无售价数据，无法计算盈亏平衡 ACoS"}
+
+        # 简化计算：盈亏平衡 ACoS ≈ 毛利率
+        # 精确计算需要扣除 FBA 费用、佣金等，这里用 target_gross_margin 近似
+        breakeven = round(target_margin * 100, 1)
+
+        return {
+            "breakeven_acos": breakeven,
+            "target_acos": round(sku_info.get("target_acos", 0.30) * 100, 1),
+            "price": price,
+            "target_margin_pct": round(target_margin * 100, 1),
+            "interpretation": (
+                f"盈亏平衡 ACoS 为 {breakeven}%，"
+                f"当广告 ACoS 低于 {breakeven}% 时盈利，"
+                f"目标 ACoS {round(sku_info.get('target_acos', 0.30) * 100)}% 在盈利区间内。"
+                if sku_info.get("target_acos", 0.30) * 100 < breakeven
+                else f"注意：目标 ACoS {round(sku_info.get('target_acos', 0.30) * 100)}% 已超过盈亏平衡 {breakeven}%，需严格控制。"
+            ),
+        }
+
+    def _analyze_budget_pacing(self, ads_data: list[dict], sku_info: dict) -> dict[str, Any]:
+        """分析预算消耗速度。"""
+        if not ads_data:
+            return {"status": "no_data"}
+
+        total_spend = sum(d["spend"] for d in ads_data)
+        days_count = len(ads_data)
+        daily_avg_spend = total_spend / days_count if days_count > 0 else 0
+
+        # 最近 3 天 vs 整体平均
+        recent_3 = ads_data[-3:] if len(ads_data) >= 3 else ads_data
+        recent_3_spend = sum(d["spend"] for d in recent_3) / len(recent_3) if recent_3 else 0
+
+        # 消耗趋势
+        if recent_3_spend > daily_avg_spend * 1.3:
+            pacing_trend = "加速"
+            pacing_signal = "近 3 天消耗速度快于平均，注意预算是否够用"
+        elif recent_3_spend < daily_avg_spend * 0.7:
+            pacing_trend = "减速"
+            pacing_signal = "近 3 天消耗速度低于平均，可能流量下降或竞价降低"
+        else:
+            pacing_trend = "稳定"
+            pacing_signal = "消耗速度稳定"
+
+        return {
+            "total_spend": round(total_spend, 2),
+            "daily_avg_spend": round(daily_avg_spend, 2),
+            "recent_3d_avg_spend": round(recent_3_spend, 2),
+            "pacing_trend": pacing_trend,
+            "pacing_signal": pacing_signal,
+            "days_analyzed": days_count,
+        }
+
+    # ═══════════════════════════════════════════════════════════
     #  健康度评估层
     # ═══════════════════════════════════════════════════════════
 
@@ -1129,19 +1207,25 @@ class AdOptimizer:
     #  报告生成层
     # ═══════════════════════════════════════════════════════════
 
-    def _build_report(self, **kwargs) -> str:
+    def _build_report(
+        self,
+        *,
+        keyword: str,
+        marketplace: str,
+        category: str,
+        ad_type: str,
+        metrics: dict[str, Any],
+        allocation: dict[str, Any],
+        keyword_bids: list[dict[str, Any]],
+        negative_keywords: list[dict[str, str]],
+        launch_plan: list[str],
+        risk_controls: list[str],
+        trend_analysis: dict[str, Any] | None = None,
+        campaign_structure: dict[str, Any] | None = None,
+    ) -> str:
         """生成文字报告。"""
-        keyword = kwargs["keyword"]
-        marketplace = kwargs["marketplace"]
-        ad_type = kwargs["ad_type"]
-        metrics = kwargs["metrics"]
-        allocation = kwargs["allocation"]
-        keyword_bids = kwargs["keyword_bids"]
-        negative_keywords = kwargs["negative_keywords"]
-        launch_plan = kwargs["launch_plan"]
-        risk_controls = kwargs["risk_controls"]
-        trend = kwargs.get("trend_analysis", {})
-        structure = kwargs.get("campaign_structure", {})
+        trend = trend_analysis or {}
+        structure = campaign_structure or {}
 
         top_keywords = "、".join(item["keyword"] for item in keyword_bids[:4])
         negatives = "、".join(item["keyword"] for item in negative_keywords[:5])
