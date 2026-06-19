@@ -19,7 +19,7 @@ async def handle_daily_analysis(config: dict) -> dict:
     返回：
         执行结果
     """
-    from app.main import _run_daily_analysis
+    from app.services.daily_analysis import run_daily_analysis
     from app.db.session import build_session_factory
     from app.env import load_env_file
     from pathlib import Path
@@ -42,7 +42,7 @@ async def handle_daily_analysis(config: dict) -> dict:
         session_factory = build_session_factory(database_url)
 
         with session_factory() as session:
-            result = _run_daily_analysis(
+            result = run_daily_analysis(
                 run_date=run_date,
                 session=session,
                 feishu_enabled=True,
