@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
-
 from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -18,12 +16,19 @@ class ChatRequest(BaseModel):
 
 # 由 main.py 注入
 _chat_graph = None
+_memory_service = None
 
 
 def init_chat_graph(chat_graph):
     """初始化聊天图"""
     global _chat_graph
     _chat_graph = chat_graph
+
+
+def init_chat_memory_service(memory_service):
+    """初始化聊天记忆服务。"""
+    global _memory_service
+    _memory_service = memory_service
 
 
 @router.post("/chat")
@@ -52,5 +57,18 @@ async def chat_endpoint(req: ChatRequest):
 
 @router.get("/chat/history")
 def get_chat_history(conversation_id: str = "default") -> dict:
-    """获取聊天历史（简单实现）"""
-    return {"conversation_id": conversation_id, "messages": []}
+    """获取当前会话聊天历史。"""
+    if _memory_service is None:
+        return {"conversation_id": conversation_id, "messages": []}
+    return {
+        "conversation_id": conversation_id,
+        "messages": _memory_service.list_conversation_messages(conversation_id),
+    }
+
+
+@router.get("/chat/sessions")
+def get_chat_sessions() -> dict:
+    """获取聊天会话列表。"""
+    if _memory_service is None:
+        return {"sessions": []}
+    return {"sessions": _memory_service.list_conversation_sessions()}

@@ -51,16 +51,27 @@ class ListingOptimizer:
         normalized_keywords = self._normalize_keywords(keywords)
         signals = self._extract_signals(description, normalized_keywords)
         listing = self._build_listing(description, normalized_keywords, signals)
+        return self.evaluate_listing(
+            listing=listing,
+            keywords=normalized_keywords,
+            product_description=description,
+        )
+
+    def evaluate_listing(
+        self,
+        *,
+        listing: dict[str, Any],
+        keywords: str | list[str] | None,
+        product_description: str,
+    ) -> dict[str, Any]:
+        normalized_keywords = self._normalize_keywords(keywords)
         keyword_coverage = self._build_keyword_coverage(normalized_keywords, listing)
-        quality_score = self._build_quality_score(listing, keyword_coverage, description)
+        quality_score = self._build_quality_score(listing, keyword_coverage, product_description)
 
         return {
-            "marketplace": (marketplace or "US").upper(),
-            "competitor_asin": competitor_asin.strip(),
             "listing": listing,
             "quality_score": quality_score,
             "keyword_coverage": keyword_coverage,
-            "generated_by_ai": False,
         }
 
     def _normalize_keywords(self, keywords: str | list[str] | None) -> list[str]:

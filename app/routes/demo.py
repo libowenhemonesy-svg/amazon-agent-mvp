@@ -14,6 +14,12 @@ from app.importers.tabular import ImportValidationError, parse_tabular_upload
 from app.services.daily_analysis import run_daily_analysis
 
 router = APIRouter(tags=["演示"])
+_feishu_enabled = True
+
+
+def init_demo_config(*, feishu_enabled: bool) -> None:
+    global _feishu_enabled
+    _feishu_enabled = feishu_enabled
 
 
 def _parse_sample_file(
@@ -131,6 +137,6 @@ def load_sample_demo(session: Session = Depends(get_session)) -> dict:
     run_result = run_daily_analysis(
         run_date=date(2026, 1, 7),
         session=session,
-        feishu_enabled=True,
+        feishu_enabled=_feishu_enabled,
     )
     return {**run_result, "imported": imported}

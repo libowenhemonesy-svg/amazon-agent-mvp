@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: amazon-agent-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amazon_agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-amazon_agent_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-amazon_agent}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - amazon_agent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: amazon-agent-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - amazon_agent_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: amazon-agent-qdrant
+    profiles:
+      - vector
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - amazon_agent_qdrantdata:/qdrant/storage
+
+volumes:
+  amazon_agent_pgdata:
+  amazon_agent_redisdata:
+  amazon_agent_qdrantdata:

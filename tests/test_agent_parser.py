@@ -13,7 +13,7 @@ def test_parse_agent_response_reads_plain_json():
     }
     """
 
-    result = parse_agent_response(raw, fallback_summary="fallback", severity="high")
+    result = parse_agent_response(raw, severity="high")
 
     assert result["summary"] == "库存低于补货周期，存在断货风险"
     assert result["root_causes"] == ["可售库存为0", "无在途库存", "补货周期25天"]
@@ -38,7 +38,7 @@ def test_parse_agent_response_reads_json_fenced_block():
     ```
     """
 
-    result = parse_agent_response(raw, fallback_summary="fallback", severity="medium")
+    result = parse_agent_response(raw, severity="medium")
 
     assert result["summary"] == "ACOS高于目标，需要检查广告效率"
     assert result["priority"] == 2
@@ -48,10 +48,12 @@ def test_parse_agent_response_reads_json_fenced_block():
 def test_parse_agent_response_falls_back_for_long_plain_text():
     raw = "这是一个非常长的分析报告。" * 100
 
-    result = parse_agent_response(raw, fallback_summary="规则命中异常，需要复核", severity="high")
+    result = parse_agent_response(raw, severity="high")
 
-    assert result["summary"] == "规则命中异常，需要复核"
-    assert result["root_causes"]
+    assert result["summary"] == "Agent 未返回可解析的真实分析结果。"
+    assert result["root_causes"] == []
+    assert result["diagnostic_checks"] == []
+    assert result["recommended_actions"] == []
     assert result["possible_causes"] == result["root_causes"]
     assert result["priority"] == 1
     assert result["immediate_action_required"] is True
@@ -67,7 +69,7 @@ def test_parse_agent_response_trims_summary_and_list_lengths():
         "immediate_action_required": False,
     }
 
-    result = parse_agent_response(raw, fallback_summary="fallback", severity="medium")
+    result = parse_agent_response(raw, severity="medium")
 
     assert len(result["summary"]) <= 60
     assert result["root_causes"] == ["1", "2", "3"]

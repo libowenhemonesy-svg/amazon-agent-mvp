@@ -8,41 +8,18 @@ from typing import Any
 def parse_agent_response(
     raw: Any,
     *,
-    fallback_summary: str,
     severity: str,
-    fallback_root_causes: list[str] | None = None,
-    fallback_diagnostic_checks: list[str] | None = None,
-    fallback_recommended_actions: list[str] | None = None,
 ) -> dict[str, Any]:
     payload = _load_payload(raw)
     if not isinstance(payload, dict):
-        return _fallback(
-            fallback_summary,
-            severity,
-            fallback_root_causes=fallback_root_causes,
-            fallback_diagnostic_checks=fallback_diagnostic_checks,
-            fallback_recommended_actions=fallback_recommended_actions,
-        )
+        return _missing_analysis(severity)
 
     root_causes = _list(payload.get("root_causes") or payload.get("possible_causes"), limit=3)
     diagnostic_checks = _list(payload.get("diagnostic_checks"), limit=4)
     recommended_actions = _list(payload.get("recommended_actions"), limit=4)
     summary = _short_text(payload.get("summary"), limit=60)
     if not summary:
-        return _fallback(
-            fallback_summary,
-            severity,
-            fallback_root_causes=fallback_root_causes,
-            fallback_diagnostic_checks=fallback_diagnostic_checks,
-            fallback_recommended_actions=fallback_recommended_actions,
-        )
-
-    if not root_causes:
-        root_causes = fallback_root_causes or _fallback_causes()
-    if not diagnostic_checks:
-        diagnostic_checks = fallback_diagnostic_checks or ["核对规则命中指标", "检查近期运营动作"]
-    if not recommended_actions:
-        recommended_actions = fallback_recommended_actions or ["安排负责人复核并记录处理动作"]
+        return _missing_analysis(severity)
 
     return {
         "summary": summary,
@@ -55,6 +32,18 @@ def parse_agent_response(
             payload.get("immediate_action_required"),
             default=severity == "high",
         ),
+    }
+
+
+def _missing_analysis(severity: str) -> dict[str, Any]:
+    return {
+        "summary": "Agent 未返回可解析的真实分析结果。",
+        "root_causes": [],
+        "possible_causes": [],
+        "diagnostic_checks": [],
+        "recommended_actions": [],
+        "priority": _priority(None, severity),
+        "immediate_action_required": severity == "high",
     }
 
 
@@ -76,30 +65,6 @@ def _load_payload(raw: Any) -> Any:
         return json.loads(text)
     except json.JSONDecodeError:
         return None
-
-
-def _fallback(
-    fallback_summary: str,
-    severity: str,
-    *,
-    fallback_root_causes: list[str] | None = None,
-    fallback_diagnostic_checks: list[str] | None = None,
-    fallback_recommended_actions: list[str] | None = None,
-) -> dict[str, Any]:
-    root_causes = fallback_root_causes or _fallback_causes()
-    return {
-        "summary": _short_text(fallback_summary, limit=60) or "规则命中异常，需要运营人员复核",
-        "root_causes": root_causes,
-        "possible_causes": root_causes,
-        "diagnostic_checks": fallback_diagnostic_checks or ["核对规则命中指标", "检查近期运营动作"],
-        "recommended_actions": fallback_recommended_actions or ["安排负责人复核并记录处理动作"],
-        "priority": _priority(None, severity),
-        "immediate_action_required": severity == "high",
-    }
-
-
-def _fallback_causes() -> list[str]:
-    return ["规则命中异常", "近期指标偏离阈值"]
 
 
 def _list(value: Any, *, limit: int) -> list[str]:

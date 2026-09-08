@@ -1,5 +1,5 @@
 [project]
-name = "amazon-agent-mvp"
+name = "all-round-operations-agent"
 version = "0.1.0"
 description = "Amazon operations MVP with CSV imports, PostgreSQL metrics, rule alerts, LangGraph agents, and Feishu sync."
 requires-python = ">=3.11"

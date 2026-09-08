@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登录 · Amazon Agent</title>
+<style>
+  :root {
+    --c-bg: #F5F7FA;
+    --c-white: #FFFFFF;
+    --c-text: rgba(0,0,0,0.88);
+    --c-muted: rgba(0,0,0,0.40);
+    --c-border: #F0F0F0;
+    --c-purple: #8D34F9;
+    --c-purple-hover: #7B2DE0;
+    --c-red: #FF4D4F;
+    --r: 8px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.06);
+    --ease: 0.2s cubic-bezier(0.645,0.045,0.355,1);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--c-bg); color: var(--c-text);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+  }
+  .login-card {
+    background: var(--c-white); border-radius: 12px; padding: 40px 36px;
+    width: 380px; max-width: 94vw; box-shadow: var(--shadow);
+  }
+  .login-card h1 {
+    font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 4px;
+  }
+  .login-card .sub {
+    font-size: 13px; color: var(--c-muted); text-align: center; margin-bottom: 28px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%; height: 42px; padding: 0 12px;
+    border: 1px solid var(--c-border); border-radius: var(--r);
+    font-size: 14px; font-family: inherit;
+    transition: border-color var(--ease), box-shadow var(--ease);
+    outline: none;
+  }
+  .field input:focus {
+    border-color: var(--c-purple);
+    box-shadow: 0 0 0 3px rgba(141, 52, 249, 0.1);
+  }
+  .btn {
+    width: 100%; height: 44px; border: none; border-radius: var(--r);
+    background: var(--c-purple); color: #fff; font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: background var(--ease);
+    margin-top: 4px;
+  }
+  .btn:hover { background: var(--c-purple-hover); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .err {
+    color: var(--c-red); font-size: 13px; text-align: center;
+    min-height: 20px; margin-top: 12px;
+  }
+  .foot {
+    text-align: center; margin-top: 20px; font-size: 12px; color: var(--c-muted);
+  }
+</style>
+<link rel="icon" type="image/png" href="/static/logo.png" />
+</head>
+<body>
+
+<div class="login-card">
+  <div style="text-align:center;margin-bottom:12px;"><img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;border-radius:16px;object-fit:cover;" /></div>
+<h1>Amazon Agent</h1>
+  <p class="sub">企业知识库运营平台</p>
+
+  <div class="field">
+    <label for="username">用户名</label>
+    <input id="username" type="text" autocomplete="username" placeholder="请输入用户名" autofocus />
+  </div>
+  <div class="field">
+    <label for="password">密码</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="请输入密码" />
+  </div>
+
+  <button class="btn" id="login-btn" onclick="doLogin()">登 录</button>
+  <div class="err" id="err-msg"></div>
+  <p class="foot">仅供企业内部使用 · 请联系管理员获取账号</p>
+</div>
+
+<script>
+async function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  if (!u || !p) { showErr('请输入用户名和密码'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '登录中…';
+  showErr('');
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username:u, password:p})
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(data.detail || '登录失败'); btn.disabled = false; btn.textContent = '登 录'; return; }
+
+    // 存 token
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('username', data.username);
+    localStorage.setItem('display_name', data.display_name);
+    localStorage.setItem('role', data.role);
+
+    // 跳转到主页
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || '/';
+    window.location.href = redirect;
+
+  } catch(e) {
+    showErr('网络错误，请稍后重试');
+    btn.disabled = false; btn.textContent = '登 录';
+  }
+}
+
+function showErr(msg) {
+  document.getElementById('err-msg').textContent = msg;
+}
+
+// Enter 提交
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+
+</body>
+</html>

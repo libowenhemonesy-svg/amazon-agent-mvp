@@ -11,6 +11,12 @@ from app.db.repository import delete_daily_run_outputs
 from app.services.daily_analysis import run_daily_analysis
 
 router = APIRouter(prefix="/jobs", tags=["定时任务"])
+_feishu_enabled = True
+
+
+def init_jobs_config(*, feishu_enabled: bool) -> None:
+    global _feishu_enabled
+    _feishu_enabled = feishu_enabled
 
 
 @router.post("/daily-run")
@@ -19,7 +25,7 @@ def daily_run(
     session: Session = Depends(get_session),
 ) -> dict:
     """手动触发每日分析"""
-    return run_daily_analysis(run_date=run_date, session=session, feishu_enabled=True)
+    return run_daily_analysis(run_date=run_date, session=session, feishu_enabled=_feishu_enabled)
 
 
 @router.delete("/daily-run")

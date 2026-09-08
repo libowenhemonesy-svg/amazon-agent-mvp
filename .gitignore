@@ -23,3 +23,10 @@ build/
 *.exe
 *.dll
 *.pyd
+src-tauri/target/
+.tmp/
+.vs/
+data/
+vector_db/
+uploads/
+app/static/generated/

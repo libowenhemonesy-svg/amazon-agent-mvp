@@ -35,3 +35,23 @@ def test_load_env_file_keeps_existing_environment_values(monkeypatch, tmp_path):
     load_env_file(env_file)
 
     assert os.environ["FEISHU_APP_TOKEN"] == "system_value"
+
+
+def test_load_env_file_replaces_empty_environment_values(monkeypatch, tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_text("BAILIAN_API_KEY=file_value", encoding="utf-8")
+    monkeypatch.setenv("BAILIAN_API_KEY", "")
+
+    load_env_file(env_file)
+
+    assert os.environ["BAILIAN_API_KEY"] == "file_value"
+
+
+def test_load_env_file_can_override_existing_environment_values(monkeypatch, tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_text("DEEPSEEK_API_KEY=file_value", encoding="utf-8")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "system_value")
+
+    load_env_file(env_file, override=True)
+
+    assert os.environ["DEEPSEEK_API_KEY"] == "file_value"

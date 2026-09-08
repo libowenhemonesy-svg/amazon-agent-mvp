@@ -1,4 +1,4 @@
-# Amazon Agent 运营台
+# 全能运营智能体
 
 > AI 驱动的跨境电商运营分析平台，集成竞品分析、智能诊断、自动化任务等功能
 
@@ -47,8 +47,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/libowenhemonesy-svg/amazon-agent-mvp.git
-cd amazon-agent-mvp
+git clone https://github.com/libowenhemonesy-svg/all-round-operations-agent.git
+cd all-round-operations-agent
 ```
 
 ### 2. 安装依赖
@@ -77,7 +77,14 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 # 飞书（可选）
 FEISHU_APP_ID=your_app_id
 FEISHU_APP_SECRET=your_app_secret
+
+# 卖家精灵 MCP（可选，用于扩展 AI 助手工具）
+SELLERSPRITE_MCP_URL=https://your-sellersprite-mcp-url
+SELLERSPRITE_API_KEY=your_sellersprite_key
+SELLERSPRITE_MCP_TRANSPORT=streamable_http
 ```
+
+配置 `SELLERSPRITE_MCP_URL` 后，AI 助手会在首次对话前尝试加载卖家精灵 MCP 工具，并与本地 SKU、销售、广告、库存、告警、利润、退货查询工具合并使用。若卖家精灵文档要求 SSE，将 `SELLERSPRITE_MCP_TRANSPORT` 改为 `sse`。
 
 ### 4. 启动服务
 
@@ -99,18 +106,10 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
 
 详细步骤见 [部署文档](docs/deploy.md)
 
-### 腾讯云轻量服务器
-
-```bash
-# SSH 连接服务器后执行
-curl -O https://raw.githubusercontent.com/libowenhemonesy-svg/amazon-agent-mvp/codex/langgraph-mvp/deploy.sh
-sudo bash deploy.sh
-```
-
 ## 项目结构
 
 ```
-amazon-agent-mvp/
+all-round-operations-agent/
 ├── app/
 │   ├── agents/          # AI Agent（LangGraph）
 │   ├── analysis/        # 分析模块（战场地图、运营天眼）
@@ -151,7 +150,7 @@ amazon-agent-mvp/
 ## 联系方式
 
 - GitHub: [@libowenhemonesy-svg](https://github.com/libowenhemonesy-svg)
-- Issues: [提交问题](https://github.com/libowenhemonesy-svg/amazon-agent-mvp/issues)
+- Issues: [提交问题](https://github.com/libowenhemonesy-svg/all-round-operations-agent/issues)
 
 ## 致谢
 

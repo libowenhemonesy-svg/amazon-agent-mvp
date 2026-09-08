@@ -11,11 +11,20 @@ class LLMClient:
 
 
 class StaticLLMClient(LLMClient):
+    """测试替身：只在单元测试中显式注入，不作为生产兜底。"""
+
     def __init__(self, response: str = "建议检查关键指标并安排负责人处理。") -> None:
         self.response = response
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         return self.response
+
+
+class MissingLLMClient(LLMClient):
+    """未配置真实 LLM 时拒绝生成，避免 Agent 返回固定分析。"""
+
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        raise RuntimeError("未配置真实 LLM，无法生成 Agent 分析。请配置 DEEPSEEK_API_KEY。")
 
 
 class DeepSeekLLMClient(LLMClient):
@@ -73,4 +82,4 @@ def build_llm_client(env: Mapping[str, str]) -> LLMClient:
             base_url=env.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
             timeout_seconds=float(env.get("DEEPSEEK_TIMEOUT_SECONDS", "30")),
         )
-    return StaticLLMClient()
+    return MissingLLMClient()

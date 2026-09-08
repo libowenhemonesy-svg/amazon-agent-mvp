@@ -1,8 +1,36 @@
 from datetime import date
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from app.db.models import AdsDaily, InventoryDaily, SalesDaily
+from app.db.repository import upsert_daily_rows, upsert_sku_rows
+from app.deps import get_session_factory
+from app.routes import settings as settings_route
+
+
+def create_app(*args, **kwargs):
+    """仅在需要完整生产应用的测试中加载工厂，避免 settings 测试初始化 RAG。"""
+    from app.main import create_app as app_factory
+
+    return app_factory(*args, **kwargs)
+
+
+def seed_operational_data(
+    *,
+    sku_rows: list[dict],
+    sales_rows: list[dict] | None = None,
+    ads_rows: list[dict] | None = None,
+    inventory_rows: list[dict] | None = None,
+) -> None:
+    with get_session_factory()() as session:
+        upsert_sku_rows(session, sku_rows)
+        if sales_rows:
+            upsert_daily_rows(session, SalesDaily, sales_rows)
+        if ads_rows:
+            upsert_daily_rows(session, AdsDaily, ads_rows)
+        if inventory_rows:
+            upsert_daily_rows(session, InventoryDaily, inventory_rows)
 
 
 def test_frontend_dashboard_is_served():
@@ -16,25 +44,225 @@ def test_frontend_dashboard_is_served():
     assert "载入示例并分析" in response.text
     assert "risk-bars" in response.text
     assert "/static/app.js" in response.text
+    assert "image-card-20260625" in response.text
 
 
-def test_frontend_static_assets_are_served():
+def test_data_import_routes_are_not_registered():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
+    response = client.post("/imports/sku")
+
+    assert response.status_code == 404
+
+
+def test_removed_battlefield_and_diagnosis_routes_are_not_registered():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
+    client = TestClient(app)
+
+    assert client.get("/api/battlefield/analyze").status_code == 404
+    assert client.get("/api/diagnosis/run").status_code == 404
+
+
+def _mcp_source_payload(name: str, capability: str, tool: str) -> dict:
+    return {
+        "name": name,
+        "url": f"https://mcp.example.com/{tool}",
+        "transport": "streamable_http",
+        "priority": 10,
+        "enabled": True,
+        "capabilities": {capability: {"tool": tool}},
+    }
+
+
+def test_admin_can_create_multiple_mcp_sources(client_as_admin, monkeypatch):
+    credential_env = {}
+    monkeypatch.setattr(
+        settings_route,
+        "get_credential_store",
+        lambda: settings_route.EnvCredentialStore(
+            credential_env, lambda updates: credential_env.update(updates)
+        ),
+    )
+    first_payload = _mcp_source_payload("卖家精灵", "keyword_expand", "keyword_research")
+    first_payload.update(
+        {"api_key": "first-secret", "headers": {"X-Workspace": "private-workspace"}}
+    )
+
+    first = client_as_admin.post("/api/settings/mcp-sources", json=first_payload)
+    second = client_as_admin.post(
+        "/api/settings/mcp-sources",
+        json=_mcp_source_payload("趋势数据", "keyword_trend", "trend"),
+    )
+    listed = client_as_admin.get("/api/settings/mcp-sources")
+
+    assert first.status_code == second.status_code == 201
+    assert len(listed.json()["items"]) == 2
+    assert first.json()["credentials_configured"] is True
+    serialized = listed.text
+    assert "first-secret" not in serialized
+    assert "private-workspace" not in serialized
+    assert "api_key" not in serialized
+    assert "headers" not in serialized
+
+
+def test_non_admin_cannot_manage_mcp_sources(client_as_user):
+    assert client_as_user.get("/api/settings/mcp-sources").status_code == 403
+    response = client_as_user.post(
+        "/api/settings/mcp-sources",
+        json=_mcp_source_payload("市场数据", "keyword_expand", "keyword_research"),
+    )
+    assert response.status_code == 403
+    assert client_as_user.patch("/api/settings/mcp-sources/1", json={"enabled": False}).status_code == 403
+    assert client_as_user.post("/api/settings/mcp-sources/1/test").status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("url", "input_value"),
+    [
+        ("https://mcp.example.com/mcp?api_key=demo-secret", "demo-secret"),
+        ("https://mcp.example.com/mcp?client_secret=demo-secret", "demo-secret"),
+        ("https://mcp.example.com/mcp?foo=bar", "bar"),
+        ("https://demo-user:demo-secret@mcp.example.com/mcp", "demo-secret"),
+        ("https://mcp.example.com/mcp#fragment-secret", "fragment-secret"),
+    ],
+)
+def test_mcp_source_rejects_url_metadata_without_echoing_it(
+    client_as_admin, url, input_value
+):
+    payload = _mcp_source_payload("危险地址", "keyword_expand", "keyword_research")
+    payload["url"] = url
+
+    response = client_as_admin.post("/api/settings/mcp-sources", json=payload)
+    listed = client_as_admin.get("/api/settings/mcp-sources")
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "MCP 地址不能包含查询参数、凭据或片段"
+    assert input_value not in response.text
+    assert url not in response.text
+    assert input_value not in listed.text
+    assert listed.json()["items"] == []
+
+
+def test_mcp_source_accepts_plain_path_url(client_as_admin):
+    response = client_as_admin.post(
+        "/api/settings/mcp-sources",
+        json=_mcp_source_payload("普通地址", "keyword_expand", "keyword_research"),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["url"] == "https://mcp.example.com/keyword_research"
+
+
+def test_mcp_source_rejects_unsupported_sse_transport(client_as_admin):
+    payload = _mcp_source_payload("旧传输", "keyword_expand", "keyword_research")
+    payload["transport"] = "sse"
+
+    response = client_as_admin.post("/api/settings/mcp-sources", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_mcp_settings_frontend_marks_caught_connection_failure():
+    javascript = (settings_route.Path.cwd() / "app" / "static" / "app.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'source.connectionStatus = "连接异常"' in javascript
+
+
+def test_blank_credentials_update_preserves_existing_mcp_credentials(
+    client_as_admin, monkeypatch
+):
+    credential_env = {}
+    monkeypatch.setattr(
+        settings_route,
+        "get_credential_store",
+        lambda: settings_route.EnvCredentialStore(
+            credential_env, lambda updates: credential_env.update(updates)
+        ),
+    )
+    payload = _mcp_source_payload("市场数据", "keyword_expand", "keyword_research")
+    payload["api_key"] = "saved-secret"
+    created = client_as_admin.post("/api/settings/mcp-sources", json=payload)
+
+    response = client_as_admin.patch(
+        f"/api/settings/mcp-sources/{created.json()['id']}",
+        json={"priority": 20, "api_key": "", "headers": {}},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["priority"] == 20
+    assert response.json()["credentials_configured"] is True
+    assert credential_env[f"MCP_SOURCE_{created.json()['id']}_API_KEY"] == "saved-secret"
+
+
+def test_mcp_source_connection_test_reports_missing_tool_names_only(
+    client_as_admin, monkeypatch
+):
+    class FakeClient:
+        async def list_tools(self):
+            return {
+                "tools": [
+                    {
+                        "name": "keyword_research",
+                        "description": "internal description",
+                        "inputSchema": {"token": "must-not-leak"},
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(settings_route, "build_mcp_client", lambda source, headers: FakeClient())
+    created = client_as_admin.post(
+        "/api/settings/mcp-sources",
+        json={
+            **_mcp_source_payload("研究数据", "keyword_expand", "keyword_research"),
+            "capabilities": {
+                "keyword_expand": {"tool": "keyword_research"},
+                "keyword_trend": {"tool": "trend"},
+            },
+        },
+    )
+
+    response = client_as_admin.post(
+        f"/api/settings/mcp-sources/{created.json()['id']}/test"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": False,
+        "message": "连接成功，但能力映射缺少工具",
+        "tools": ["keyword_research"],
+        "missing_mappings": {"keyword_trend": "trend"},
+    }
+    assert "must-not-leak" not in response.text
+
+
+def test_frontend_static_assets_are_served(client):
     js_response = client.get("/static/app.js")
     css_response = client.get("/static/styles.css")
+    selection_js = client.get("/static/selection-workbench.js")
+    selection_css = client.get("/static/selection-workbench.css")
 
     assert js_response.status_code == 200
     assert "runAnalysis" in js_response.text
     assert "loadDemo" in js_response.text
     assert "feishuStatus" in js_response.text
-    assert "runProductResearch" in js_response.text
+    assert selection_js.status_code == 200
+    assert "SelectionWorkbench" in selection_js.text
+    assert selection_css.status_code == 200
+    assert ".selection-workbench" in selection_css.text
     assert "runListingOptimization" in js_response.text
     assert "runAdOptimization" in js_response.text
     assert "runSupplyChainAnalysis" in js_response.text
     assert "saveProfitCalculation" in js_response.text
     assert "runFbaEstimate" in js_response.text
+    assert "addImageMessage" in js_response.text
+    assert "case \"image\"" in js_response.text
+    assert "sseBuffer" in js_response.text
+    assert "processSseBlock" in js_response.text
+    assert "renderGeneratedImageLinks" in js_response.text
+    assert "data-url" in js_response.text
     assert "initPageFromHash" in js_response.text
     assert "getCurrentPageName" in js_response.text
     assert "isPageVisible" in js_response.text
@@ -53,6 +281,7 @@ def test_frontend_static_assets_are_served():
     assert ".profit-calculator-grid" in css_response.text
     assert ".fba-estimator-grid" in css_response.text
     assert ".page.is-visible" in css_response.text
+    assert ".generated-image-card" in css_response.text
     assert ".nav-item[aria-current=\"page\"]" in css_response.text
     assert ".ui-fluid" in css_response.text
     assert "--surface-raised" in css_response.text
@@ -72,16 +301,26 @@ def test_frontend_static_assets_are_served():
     assert "overflow-y: auto" in side_nav_block
 
 
-def test_frontend_dashboard_contains_product_research_entry():
-    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
-    client = TestClient(app)
-
+def test_selection_workbench_assets_and_stages_are_served(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "selection-keyword" in response.text
-    assert "开始研究" in response.text
-    assert "蓝海关键词库" in response.text
+    assert "/static/selection-workbench.js" in response.text
+    assert "/static/selection-workbench.css" in response.text
+    assert 'data-selection-stage="keywords"' in response.text
+    assert 'data-selection-stage="direction"' in response.text
+    assert 'data-selection-stage="pricing"' in response.text
+    assert 'data-selection-stage="report"' in response.text
+    assert "Chrome 插件采集商品" not in response.text
+
+
+def test_selection_project_create_request_is_authenticated_and_errors_are_visible(client):
+    page = client.get("/").text
+    script = client.get("/static/selection-workbench.js").text
+
+    assert 'Authorization: `Bearer ${token}`' in script
+    assert '/static/selection-workbench.js?v=selection-mcp-full-20260715-2' in page
+    assert page.index('id="selection-notice"') < page.index('id="selection-project-workspace"')
 
 
 def test_frontend_dashboard_contains_listing_optimization_entry():
@@ -92,7 +331,7 @@ def test_frontend_dashboard_contains_listing_optimization_entry():
 
     assert response.status_code == 200
     assert "page-listing-optimization" in response.text
-    assert "Listing 优化" in response.text
+    assert "Listing" in response.text
     assert "listing-product-description" in response.text
 
 
@@ -367,7 +606,27 @@ def test_fba_estimate_endpoint_rejects_invalid_dimensions():
     assert response.status_code == 400
 
 
-def test_listing_optimization_endpoint_generates_listing():
+def test_listing_optimization_endpoint_uses_configured_llm(monkeypatch):
+    class FakeLLM:
+        def __init__(self) -> None:
+            self.prompts = []
+
+        def generate(self, system_prompt: str, user_prompt: str) -> str:
+            self.prompts.append((system_prompt, user_prompt))
+            return (
+                "Title: Rechargeable Portable Fan for Travel\n"
+                "Bullet Points:\n"
+                "- Three speed airflow for desk and travel use\n"
+                "- USB rechargeable battery for cordless convenience\n"
+                "- Quiet motor for work and bedroom use\n"
+                "- Compact handheld design for bags and commutes\n"
+                "- Easy controls for everyday cooling\n"
+                "Description: A compact rechargeable fan for personal cooling.\n"
+                "Search Terms: portable fan handheld fan rechargeable fan"
+            )
+
+    llm = FakeLLM()
+    monkeypatch.setattr("app.main.build_llm_client", lambda env: llm)
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
@@ -382,11 +641,14 @@ def test_listing_optimization_endpoint_generates_listing():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["listing"]["title"]
+    assert payload["generated_by_ai"] is True
+    assert payload["listing"]["title"] == "Rechargeable Portable Fan for Travel"
     assert len(payload["listing"]["bullets"]) == 5
     assert payload["quality_score"]["overall_score"] > 0
     assert len(payload["quality_score"]["dimensions"]) == 8
     assert payload["keyword_coverage"]["items"]
+    assert "Portable handheld fan" in llm.prompts[0][1]
+    assert "usb rechargeable fan" in llm.prompts[0][1]
 
 
 def test_listing_optimization_endpoint_rejects_empty_description():
@@ -401,75 +663,13 @@ def test_listing_optimization_endpoint_rejects_empty_description():
     assert response.status_code == 400
 
 
-def test_product_research_endpoint_uses_chrome_products():
-    app = create_app(
-        database_url="sqlite+pysqlite:///:memory:",
-        feishu_enabled=False,
-        product_research_ai_enabled=False,
-    )
-    client = TestClient(app)
-
-    submit_response = client.post(
-        "/api/chrome/submit",
-        json={
-            "asin": "B0FAN001",
-            "title": "Portable Fan Rechargeable Mini Handheld Fan",
-            "price": "$29.99",
-            "rating": "4.6 out of 5 stars",
-            "review_count": "380 ratings",
-            "url": "https://amazon.example/B0FAN001",
-        },
-    )
-    assert submit_response.status_code == 200
-
-    response = client.post(
-        "/api/selection/research",
-        json={"keyword": "portable fan", "marketplace": "US", "category": "all"},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["market_overview"]["sample_size"] == 1
-    assert payload["competitors"][0]["asin"] == "B0FAN001"
-    assert payload["keywords"]
-    assert payload["pricing_advice"]["target_price_min"] > 0
-    assert payload["decision"]["status"] in {"go", "cautious", "no_go"}
-    assert payload["generated_by_ai"] is False
-
-
-def test_chrome_submit_parses_localized_price_rating_and_reviews():
+def test_legacy_selection_and_chrome_routes_are_removed():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
-    submit_response = client.post(
-        "/api/chrome/submit",
-        json={
-            "asin": "B0AIRPODS",
-            "title": "Apple AirPods Pro 2",
-            "price": "US$189.99",
-            "rating": "4.7 out of 5 stars",
-            "review_count": "85,234 ratings",
-            "url": "https://amazon.example/B0AIRPODS",
-        },
-    )
-
-    assert submit_response.status_code == 200
-    payload = submit_response.json()
-    assert payload["price"] == 189.99
-    assert payload["rating"] == 4.7
-    assert payload["review_count"] == 85234
-
-
-def test_product_research_endpoint_rejects_empty_keyword():
-    app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
-    client = TestClient(app)
-
-    response = client.post(
-        "/api/selection/research",
-        json={"keyword": "   ", "marketplace": "US", "category": "all"},
-    )
-
-    assert response.status_code == 400
+    assert client.post("/api/selection/research", json={"keyword": "fan"}).status_code == 404
+    assert client.get("/api/chrome/products").status_code == 404
+    assert client.post("/api/chrome/analyze", json={"asins": []}).status_code == 404
 
 
 def test_demo_sample_endpoint_loads_sample_data_and_runs_analysis():
@@ -511,55 +711,41 @@ def test_daily_run_generates_metrics_alerts_agent_recommendations_and_report():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
-    assert client.post(
-        "/imports/sku",
-        files={
-            "file": (
-                "sku.csv",
-                b"SKU,Target ACOS,Safety Stock Days,Lifecycle,Replenishment Days\nSKU-001,0.3,30,stable,25\n",
-                "text/csv",
-            )
-        },
-    ).status_code == 200
-    assert client.post(
-        "/imports/sales",
-        files={
-            "file": (
-                "sales.csv",
-                (
-                    "SKU,Date,Units Sold,Sales Amount\n"
-                    "SKU-001,2026-01-01,10,100\n"
-                    "SKU-001,2026-01-02,9,100\n"
-                    "SKU-001,2026-01-03,8,100\n"
-                    "SKU-001,2026-01-04,7,100\n"
-                    "SKU-001,2026-01-05,6,100\n"
-                    "SKU-001,2026-01-06,5,100\n"
-                    "SKU-001,2026-01-07,4,100\n"
-                ).encode(),
-                "text/csv",
-            )
-        },
-    ).status_code == 200
-    assert client.post(
-        "/imports/ads",
-        files={
-            "file": (
-                "ads.csv",
-                b"SKU,Date,Impressions,Clicks,Spend,Ad Orders,Ad Sales\nSKU-001,2026-01-07,1000,30,45,0,100\n",
-                "text/csv",
-            )
-        },
-    ).status_code == 200
-    assert client.post(
-        "/imports/inventory",
-        files={
-            "file": (
-                "inventory.csv",
-                b"SKU,Date,Available Inventory,Inbound Inventory,Reserved Inventory\nSKU-001,2026-01-07,40,0,0\n",
-                "text/csv",
-            )
-        },
-    ).status_code == 200
+    seed_operational_data(
+        sku_rows=[
+            {
+                "sku": "SKU-001",
+                "target_acos": 0.3,
+                "safety_stock_days": 30,
+                "lifecycle": "stable",
+                "replenishment_days": 25,
+            }
+        ],
+        sales_rows=[
+            {"sku": "SKU-001", "date": f"2026-01-{day:02d}", "units_sold": 11 - day, "sales_amount": 100}
+            for day in range(1, 8)
+        ],
+        ads_rows=[
+            {
+                "sku": "SKU-001",
+                "date": "2026-01-07",
+                "impressions": 1000,
+                "clicks": 30,
+                "spend": 45,
+                "ad_orders": 0,
+                "ad_sales": 100,
+            }
+        ],
+        inventory_rows=[
+            {
+                "sku": "SKU-001",
+                "date": "2026-01-07",
+                "available_inventory": 40,
+                "inbound_inventory": 0,
+                "reserved_inventory": 0,
+            }
+        ],
+    )
 
     run_response = client.post("/jobs/daily-run", params={"run_date": str(date(2026, 1, 7))})
     assert run_response.status_code == 200
@@ -604,21 +790,21 @@ def test_sales_monitor_overview_returns_alerts_after_daily_run():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
-    # 导入数据：SKU-001 前 7 天销量 100，第 8 天销量 10（触发 sales_drop）
-    sku_csv = b"SKU,Title,Price\nSKU-001,Test Product,29.99\n"
-    assert client.post("/imports/sku", files={"file": ("sku.csv", sku_csv, "text/csv")}).status_code == 200
-
-    sales_lines = ["SKU,Date,Units Sold,Sales Amount"]
-    for d in range(1, 8):
-        sales_lines.append(f"SKU-001,2026-01-{d:02d},100,2999.00")
-    sales_lines.append("SKU-001,2026-01-08,10,299.90")
-    sales_csv = "\n".join(sales_lines).encode()
-    assert client.post("/imports/sales", files={"file": ("sales.csv", sales_csv, "text/csv")}).status_code == 200
-
-    ads_csv = b"SKU,Date,Impressions,Clicks,Spend,Ad Orders,Ad Sales\nSKU-001,2026-01-08,1000,30,45,5,150\n"
-    assert client.post("/imports/ads", files={"file": ("ads.csv", ads_csv, "text/csv")}).status_code == 200
-    inv_csv = b"SKU,Date,Available Inventory,Inbound Inventory,Reserved Inventory\nSKU-001,2026-01-08,100,0,0\n"
-    assert client.post("/imports/inventory", files={"file": ("inv.csv", inv_csv, "text/csv")}).status_code == 200
+    # SKU-001 前 7 天销量 100，第 8 天销量 10（触发 sales_drop）
+    seed_operational_data(
+        sku_rows=[{"sku": "SKU-001"}],
+        sales_rows=[
+            {"sku": "SKU-001", "date": f"2026-01-{day:02d}", "units_sold": 100, "sales_amount": 2999}
+            for day in range(1, 8)
+        ]
+        + [{"sku": "SKU-001", "date": "2026-01-08", "units_sold": 10, "sales_amount": 299.9}],
+        ads_rows=[
+            {"sku": "SKU-001", "date": "2026-01-08", "impressions": 1000, "clicks": 30, "spend": 45, "ad_orders": 5, "ad_sales": 150}
+        ],
+        inventory_rows=[
+            {"sku": "SKU-001", "date": "2026-01-08", "available_inventory": 100, "inbound_inventory": 0, "reserved_inventory": 0}
+        ],
+    )
 
     run_resp = client.post("/jobs/daily-run", params={"run_date": "2026-01-08"})
     assert run_resp.status_code == 200
@@ -638,10 +824,10 @@ def test_sales_monitor_metrics_returns_sku_detail():
     app = create_app(database_url="sqlite+pysqlite:///:memory:", feishu_enabled=False)
     client = TestClient(app)
 
-    sku_csv = b"SKU,Title,Price\nSKU-001,Test,19.99\n"
-    assert client.post("/imports/sku", files={"file": ("sku.csv", sku_csv, "text/csv")}).status_code == 200
-    sales_csv = b"SKU,Date,Units Sold,Sales Amount\nSKU-001,2026-01-07,50,999.50\n"
-    assert client.post("/imports/sales", files={"file": ("sales.csv", sales_csv, "text/csv")}).status_code == 200
+    seed_operational_data(
+        sku_rows=[{"sku": "SKU-001"}],
+        sales_rows=[{"sku": "SKU-001", "date": "2026-01-07", "units_sold": 50, "sales_amount": 999.5}],
+    )
 
     resp = client.get("/api/sales-monitor/metrics/SKU-001", params={"end_date": "2026-01-07"})
     assert resp.status_code == 200

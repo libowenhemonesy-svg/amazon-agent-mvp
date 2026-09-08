@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from app.agents.llm import DeepSeekLLMClient, StaticLLMClient, build_llm_client
+from app.agents.llm import DeepSeekLLMClient, MissingLLMClient, build_llm_client
 
 
 class FakeResponse:
@@ -70,11 +70,15 @@ def test_deepseek_client_rejects_malformed_response():
         client.generate("系统提示", "用户提示")
 
 
-def test_build_llm_client_uses_static_client_without_api_key(monkeypatch):
+def test_build_llm_client_disables_fixed_agent_response_without_api_key(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
 
-    assert isinstance(build_llm_client(os.environ), StaticLLMClient)
+    client = build_llm_client(os.environ)
+
+    assert isinstance(client, MissingLLMClient)
+    with pytest.raises(RuntimeError, match="未配置真实 LLM"):
+        client.generate("系统提示", "用户提示")
 
 
 def test_build_llm_client_uses_deepseek_when_configured(monkeypatch):

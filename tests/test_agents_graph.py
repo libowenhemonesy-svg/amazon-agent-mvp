@@ -207,18 +207,10 @@ def test_sales_agent_malformed_output_uses_metric_aware_fallback():
 
     agent_result = result["agent_result"]
     assert agent_result["agent_name"] == "sales_agent"
-    assert agent_result["summary"] == "昨日销量为 5 单，低于近 7 日平均销量 12 单，下降幅度为 58%。"
-    assert agent_result["root_causes"] == ["广告流量下降", "价格变化", "优惠活动结束"]
-    assert agent_result["diagnostic_checks"] == [
-        "检查广告曝光",
-        "检查购物车状态",
-        "检查优惠券状态",
-        "检查库存状态",
-        "检查主要竞品价格",
-    ]
-    assert agent_result["recommended_actions"] == [
-        "优先检查广告曝光、购物车状态、优惠券状态、库存状态和主要竞品价格变化"
-    ]
+    assert agent_result["summary"] == "Agent 未返回可解析的真实分析结果。"
+    assert agent_result["root_causes"] == []
+    assert agent_result["diagnostic_checks"] == []
+    assert agent_result["recommended_actions"] == []
 
 
 def test_sales_agent_declining_trend_fallback_does_not_use_drop_ratio_context():
@@ -252,7 +244,7 @@ def test_sales_agent_declining_trend_fallback_does_not_use_drop_ratio_context():
         }
     )
 
-    assert result["agent_result"]["summary"] == "近 3 日销量连续下降，需排查流量、价格、优惠、库存和竞品变化。"
+    assert result["agent_result"]["summary"] == "Agent 未返回可解析的真实分析结果。"
     assert result["agent_result"]["priority"] == 2
 
 
@@ -414,16 +406,7 @@ def test_ads_agent_malformed_output_uses_alert_specific_fallback():
 
     agent_result = result["agent_result"]
     assert agent_result["agent_name"] == "ads_agent"
-    assert agent_result["summary"] == "点击达到阈值但无广告订单，需排查搜索词质量和 Listing 转化。"
-    assert agent_result["root_causes"] == ["关键词匹配过宽", "无效点击增加", "转化率下降", "Listing 页面转化不足"]
-    assert agent_result["diagnostic_checks"] == [
-        "检查高花费搜索词",
-        "检查点击无订单关键词",
-        "检查 CTR/CVR 是否低于历史",
-        "检查广告组 ACOS",
-    ]
-    assert agent_result["recommended_actions"] == [
-        "降低低转化关键词出价",
-        "否定无效搜索词",
-        "保留有订单且 ACOS 可控的广告组",
-    ]
+    assert agent_result["summary"] == "Agent 未返回可解析的真实分析结果。"
+    assert agent_result["root_causes"] == []
+    assert agent_result["diagnostic_checks"] == []
+    assert agent_result["recommended_actions"] == []

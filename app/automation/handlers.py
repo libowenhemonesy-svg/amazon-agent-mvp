@@ -149,48 +149,7 @@ async def handle_competitor_monitor(config: dict) -> dict:
     返回：
         执行结果
     """
-    from app.db.session import build_session_factory
-    from app.db.models import SkuMaster
-    from app.analysis.battlefield import BattlefieldAnalyzer
-    from sqlalchemy import select
-    import os
-    from app.env import load_env_file
-    from pathlib import Path
-
-    load_env_file(Path.cwd() / ".env")
-
-    marketplace = config.get("marketplace", "US")
-
-    try:
-        # 获取要监控的 ASIN 列表
-        database_url = os.getenv("DATABASE_URL", "sqlite+pysqlite:///./amazon_agent.db")
-        session_factory = build_session_factory(database_url)
-
-        with session_factory() as session:
-            skus = session.scalars(
-                select(SkuMaster).where(SkuMaster.enabled.is_(True))
-            ).all()
-
-        if not skus:
-            return {"success": True, "message": "无 SKU 需要监控"}
-
-        # 使用战场地图分析器
-        analyzer = BattlefieldAnalyzer()
-        results = []
-
-        for sku in skus[:5]:  # 限制每次最多监控 5 个
-            if sku.asin:
-                result = analyzer.generate_demo_data(sku.asin)
-                results.append({
-                    "asin": sku.asin,
-                    "sku": sku.sku,
-                    "competitors_count": len(result.get("competitors", [])),
-                })
-
-        return {
-            "success": True,
-            "monitored_count": len(results),
-            "results": results,
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    return {
+        "success": False,
+        "message": "竞品监控依赖的战场分析模块已移除，请使用 AI 选品进行竞品研究。",
+    }

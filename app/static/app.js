@@ -4,8 +4,11 @@ const endpoints = {
   metrics: "/metrics/daily",
   run: "/jobs/daily-run",
   demo: "/demo/load-sample",
-  selectionResearch: "/api/selection/research",
   listingOptimize: "/api/listing/optimize",
+  dianxiaomiGenerate: "/api/dianxiaomi/generate-attributes",
+  dianxiaomiFill: "/api/dianxiaomi/fill",
+  dianxiaomiStatus: "/api/dianxiaomi/fill/status",
+  dianxiaomiContinue: "/api/dianxiaomi/fill/continue",
   adOptimize: "/api/ads/optimize",
   supplyChainAnalyze: "/api/supply-chain/analyze",
   profitCalculate: "/api/profit/calculate",
@@ -13,6 +16,9 @@ const endpoints = {
   fbaEstimate: "/api/fba/estimate",
   salesMonitorOverview: "/api/sales-monitor/overview",
   salesMonitorMetrics: "/api/sales-monitor/metrics",
+  salesDashboard: "/api/sales-monitor/dashboard",
+  adsDashboard: "/api/ads-analysis/dashboard",
+  inventoryDashboard: "/api/inventory-agent/dashboard",
 };
 
 const statusOptions = [
@@ -24,13 +30,11 @@ const statusOptions = [
 ];
 
 let currentAlerts = [];
+let currentDianxiaomiAttributes = null;
+let dianxiaomiStatusTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".upload-card").forEach((form) => {
-    form.addEventListener("submit", uploadFile);
-    initDragAndDrop(form);
-  });
-  document.querySelectorAll(".nav-item").forEach((item) => {
+  document.querySelectorAll(".nav-item[data-page]").forEach((item) => {
     item.addEventListener("click", activateNavItem);
   });
   window.addEventListener("hashchange", initPageFromHash);
@@ -41,105 +45,70 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("reset-day").addEventListener("click", resetDay);
   document.getElementById("sidebar-toggle").addEventListener("click", toggleSidebar);
   document.getElementById("global-search").addEventListener("input", syncGlobalSearch);
-  document.getElementById("sample-date").addEventListener("click", () => {
-    document.getElementById("run-date").value = "2026-01-07";
-  });
   document.getElementById("run-date").addEventListener("change", refreshResults);
   document.getElementById("alert-search").addEventListener("input", renderFilteredAlerts);
   document.getElementById("severity-filter").addEventListener("change", renderFilteredAlerts);
   document.getElementById("status-filter").addEventListener("change", renderFilteredAlerts);
   const initialPageName = initPageFromHash();
+  initSidebarUser();
   if (shouldRefreshDashboardOnLoad(initialPageName)) {
     refreshResults();
   }
 });
 
-function initDragAndDrop(form) {
-  const dropZone = form.querySelector(".drop-zone");
-  const fileInput = form.querySelector("input[type=file]");
-  const fileLabel = form.querySelector(".file-type");
-
-  if (!dropZone) return;
-
-  // 点击 dropZone 触发文件选择
-  dropZone.addEventListener("click", (e) => {
-    e.preventDefault();
-    fileInput.click();
-  });
-
-  // 点击标签触发文件选择
-  if (fileLabel) {
-    fileLabel.addEventListener("click", (e) => {
-      e.preventDefault();
-      fileInput.click();
-    });
-  }
-
-  // 文件选择后更新显示
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files.length > 0) {
-      const fileName = fileInput.files[0].name;
-      dropZone.querySelector("span").textContent = fileName;
-      form.classList.add("has-file");
-    }
-  });
-
-  // 拖拽事件
-  form.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    form.classList.add("drag-over");
-  });
-
-  form.addEventListener("dragleave", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    form.classList.remove("drag-over");
-  });
-
-  form.addEventListener("drop", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    form.classList.remove("drag-over");
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      fileInput.files = files;
-      const fileName = files[0].name;
-      dropZone.querySelector("span").textContent = fileName;
-      form.classList.add("has-file");
-
-      // 自动触发上传
-      const submitEvent = new Event("submit", { cancelable: true });
-      form.dispatchEvent(submitEvent);
-    }
-  });
-}
-
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("is-open");
+}
+
+function initSidebarUser() {
+  const trigger = document.getElementById("sidebar-user-menu");
+  const popover = document.getElementById("sidebar-user-popover");
+  const user = window.currentUser || {};
+  if (!trigger || !popover) return;
+
+  const name = user.displayName || user.username || "用户";
+  document.getElementById("sidebar-user-name").textContent = name;
+  document.getElementById("sidebar-user-avatar").textContent = name.slice(0, 1).toUpperCase();
+  document.getElementById("sidebar-user-role").textContent = user.role === "admin" ? "管理员" : "用户";
+
+  trigger.addEventListener("click", () => {
+    const isOpen = !popover.hidden;
+    popover.hidden = isOpen;
+    trigger.setAttribute("aria-expanded", String(!isOpen));
+  });
+
+  const adminAction = document.getElementById("sidebar-admin-action");
+  if (user.role === "admin") {
+    adminAction.hidden = false;
+    adminAction.addEventListener("click", () => window.showAdminPanel());
+  }
+  document.getElementById("sidebar-logout-action").addEventListener("click", () => window.logout());
+  document.addEventListener("click", (event) => {
+    if (!trigger.contains(event.target) && !popover.contains(event.target)) {
+      popover.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  });
 }
 
 // 页面标题映射
 const pageTitles = {
   overview: { title: "运营总览", subtitle: "销售 · 广告 · 库存 · 质量异常监控" },
-  imports: { title: "数据导入", subtitle: "上传 CSV/Excel 文件导入运营数据" },
   analytics: { title: "风险分析", subtitle: "查看风险等级分布和模块统计" },
   tasks: { title: "异常任务", subtitle: "查看每日简报和异常告警" },
-  "ai-selection": { title: "AI 选品", subtitle: "Chrome 插件采集商品 · AI 分析选品" },
-  "listing-optimization": { title: "Listing 优化", subtitle: "标题 · 五点描述 · 产品详情 · Search Terms" },
+  "ai-selection": { title: "AI 选品", subtitle: "关键词调研 · 产品方向 · 成本定价 · 决策报告" },
+  "image-studio": { title: "图片制作", subtitle: "云模型 · 工作流 · 任务队列 · 素材库" },
+  "listing-optimization": { title: "Listing", subtitle: "标题 · 五点描述 · 产品详情 · Search Terms" },
   "ad-optimization": { title: "广告优化", subtitle: "预算 · ACoS · 出价 · 否定词 · 分时策略" },
   "supply-chain": { title: "供应链分析", subtitle: "采购成本 · 供应商 · 物流 · 备货补货" },
   "profit-calculator": { title: "利润核算", subtitle: "售价 · 成本 · FBA · 广告 · ROI" },
   "fba-estimator": { title: "FBA 成本估算", subtitle: "尺寸 · 重量 · Size Tier · Fulfillment Fee" },
   chat: { title: "AI 助手", subtitle: "智能对话查询运营数据" },
-  battlefield: { title: "战场地图", subtitle: "竞品分析 · 市场份额 · 关键词洞察" },
-  diagnosis: { title: "运营天眼", subtitle: "产品健康度诊断 · 优化建议" },
   "sales-monitor": { title: "销售监控", subtitle: "实时监控销售数据，自动识别异常波动" },
   "ads-analysis": { title: "广告分析", subtitle: "深度分析广告投放效果，优化广告策略" },
   "inventory-agent": { title: "库存管家", subtitle: "智能库存管理，避免断货和积压" },
   automation: { title: "自动化任务", subtitle: "定时分析 · 自动同步 · 竞品监控" },
-  settings: { title: "ERP 对接", subtitle: "配置易仓ERP和亚马逊店铺连接" },
+  settings: { title: "MCP 对接", subtitle: "手动配置数据源 MCP 服务" },
 };
 
 function activateNavItem(event) {
@@ -159,7 +128,7 @@ function getCurrentPageName() {
 }
 
 function findNavItem(pageName) {
-  return Array.from(document.querySelectorAll(".nav-item")).find((item) => item.dataset.page === pageName);
+  return Array.from(document.querySelectorAll(".nav-item[data-page]")).find((item) => item.dataset.page === pageName);
 }
 
 function shouldRefreshDashboardOnLoad(pageName = getCurrentPageName()) {
@@ -172,7 +141,13 @@ function isPageVisible(pageName) {
 }
 
 function initPageFromHash() {
-  const pageName = getCurrentPageName();
+  const requestedPageName = getCurrentPageName();
+  const pageName = document.getElementById("page-" + requestedPageName)
+    ? requestedPageName
+    : "overview";
+  if (pageName !== requestedPageName) {
+    window.history.replaceState(null, "", "#overview");
+  }
   const navItem = findNavItem(pageName) || findNavItem("overview");
   if (!navItem) return "overview";
   const resolvedPageName = navItem.dataset.page || "overview";
@@ -183,9 +158,13 @@ function initPageFromHash() {
 function showPage(pageName, navItem) {
   const targetPage = document.getElementById("page-" + pageName);
   if (!targetPage) return;
+  const topbar = document.querySelector(".topbar");
+  topbar.classList.toggle("is-selection-page", pageName === "ai-selection");
+  const dashboard = document.querySelector(".dashboard");
 
+  dashboard?.classList.toggle("is-selection-page", pageName === "ai-selection");
   // 更新导航状态
-  document.querySelectorAll(".nav-item").forEach((item) => {
+  document.querySelectorAll(".nav-item[data-page]").forEach((item) => {
     const isActiveItem = item === navItem;
     item.classList.toggle("is-active", isActiveItem);
     if (isActiveItem) {
@@ -219,7 +198,10 @@ function showPage(pageName, navItem) {
     loadSettings();
   }
   if (pageName === "ai-selection") {
-    loadChromeProducts();
+    window.SelectionWorkbench?.activate();
+  }
+  if (pageName === "image-studio") {
+    window.ImageStudio?.activate();
   }
   if (pageName === "profit-calculator") {
     loadProfitHistory();
@@ -230,8 +212,17 @@ function showPage(pageName, navItem) {
   if (pageName === "sales-monitor") {
     initSalesMonitor();
   }
+  if (pageName === "ads-analysis") {
+    initAdsAnalysis();
+  }
+  if (pageName === "inventory-agent") {
+    initInventoryAgent();
+  }
   if (pageName === "automation") {
     loadAutomationTasks();
+  }
+  if (pageName === "chat") {
+    initChat();
   }
 }
 
@@ -256,30 +247,6 @@ async function loadDemo() {
     await refreshResults();
   } catch (error) {
     setNotice(jobStatus, error.message, false);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function uploadFile(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const output = form.querySelector("output");
-  const fileInput = form.querySelector("input[type=file]");
-  const button = form.querySelector("button");
-  if (!fileInput.files.length) {
-    setNotice(output, "请选择文件", false);
-    return;
-  }
-  const body = new FormData();
-  body.append("file", fileInput.files[0]);
-  button.disabled = true;
-  setNotice(output, "上传中…", true);
-  try {
-    const data = await requestJson(form.dataset.endpoint, { method: "POST", body });
-    setNotice(output, `已导入 ${data.imported} 行`, true);
-  } catch (error) {
-    setNotice(output, error.message, false);
   } finally {
     button.disabled = false;
   }
@@ -582,11 +549,23 @@ function escapeHtml(value) {
 
 function initListingOptimization() {
   const generateButton = document.getElementById("generate-listing");
+  const fillDianxiaomiButton = document.getElementById("fill-dianxiaomi");
+  const categoryDoneButton = document.getElementById("dianxiaomi-category-done");
+  const productIdDoneButton = document.getElementById("dianxiaomi-product-id-done");
   const descriptionInput = document.getElementById("listing-product-description");
   const keywordInput = document.getElementById("listing-keywords");
 
   if (generateButton) {
     generateButton.addEventListener("click", runListingOptimization);
+  }
+  if (fillDianxiaomiButton) {
+    fillDianxiaomiButton.addEventListener("click", runDianxiaomiFill);
+  }
+  if (categoryDoneButton) {
+    categoryDoneButton.addEventListener("click", () => continueDianxiaomiFill("category"));
+  }
+  if (productIdDoneButton) {
+    productIdDoneButton.addEventListener("click", () => continueDianxiaomiFill("product_id"));
   }
 
   [descriptionInput, keywordInput].forEach((input) => {
@@ -599,18 +578,154 @@ function initListingOptimization() {
     });
   });
 
-  document.querySelectorAll(".listing-template-row button").forEach((button) => {
-    button.addEventListener("click", () => {
-      const template = button.dataset.template || "";
-      if (descriptionInput) {
-        descriptionInput.value = template;
-        descriptionInput.focus();
-      }
-      if (keywordInput && !keywordInput.value.trim()) {
-        keywordInput.value = inferTemplateKeywords(template);
-      }
+}
+
+async function runDianxiaomiFill() {
+  const descriptionInput = document.getElementById("listing-product-description");
+  const keywordInput = document.getElementById("listing-keywords");
+  const marketplaceSelect = document.getElementById("listing-marketplace");
+  const button = document.getElementById("fill-dianxiaomi");
+  const productContext = descriptionInput.value.trim();
+  const keyword = extractPrimaryKeyword(keywordInput.value);
+
+  if (!productContext) {
+    setDianxiaomiStatus("请先输入产品描述", false);
+    descriptionInput.focus();
+    return;
+  }
+  if (!keyword) {
+    setDianxiaomiStatus("请先输入目标关键词，ProductListingAgent 需要关键词生成 Listing", false);
+    keywordInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<span class="loading"></span>生成并启动中...';
+  setDianxiaomiStatus("正在调用 ProductListingAgent 生成 Listing，并转换店小秘 JSON", true);
+  hideDianxiaomiControls();
+
+  try {
+    const generated = await requestJson(endpoints.dianxiaomiGenerate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword,
+        product_context: productContext,
+        marketplace: marketplaceSelect.value,
+      }),
     });
-  });
+    currentDianxiaomiAttributes = generated.attributes;
+    renderDianxiaomiGeneratedListing(generated.listing);
+    renderDianxiaomiPreview(generated.attributes);
+    setDianxiaomiStatus("店小秘 JSON 已生成，正在启动浏览器填表", true);
+
+    await requestJson(endpoints.dianxiaomiFill, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ attributes: currentDianxiaomiAttributes }),
+    });
+    setDianxiaomiStatus("Playwright 已启动。请在打开的店小秘浏览器中按提示处理分类和产品 ID。", true);
+    startDianxiaomiStatusPolling();
+  } catch (error) {
+    setDianxiaomiStatus(error.message, false);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.62 0 3.14.43 4.45 1.18"/></svg>
+      生成并填写店小秘
+    `;
+  }
+}
+
+function extractPrimaryKeyword(value) {
+  return String(value || "")
+    .split(/[,，;；\n]/)
+    .map((item) => item.trim())
+    .find(Boolean) || "";
+}
+
+function renderDianxiaomiGeneratedListing(listing) {
+  if (!listing) return;
+  const title = listing.title || "";
+  const bullets = listing.bullet_points || listing.bullets || [];
+  const description = listing.description || "";
+  const searchTerms = listing.search_terms || "";
+
+  document.getElementById("listing-title-output").classList.remove("empty");
+  document.getElementById("listing-title-output").textContent = title;
+  document.getElementById("listing-title-count").textContent = `${title.length}/200`;
+  document.getElementById("listing-bullets-output").innerHTML = bullets
+    .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
+    .join("");
+  document.getElementById("listing-description-output").classList.remove("empty");
+  document.getElementById("listing-description-output").textContent = description;
+  document.getElementById("listing-description-count").textContent = `${description.length}/2000`;
+  const terms = searchTerms.split(/\s+/).filter(Boolean);
+  const searchTermsOutput = document.getElementById("listing-search-terms-output");
+  searchTermsOutput.classList.remove("empty");
+  searchTermsOutput.innerHTML = terms.map((term) => `<span>${escapeHtml(term)}</span>`).join("");
+}
+
+function renderDianxiaomiPreview(attributes) {
+  const preview = document.getElementById("dianxiaomi-json-preview");
+  if (!preview) return;
+  preview.style.display = "block";
+  preview.textContent = JSON.stringify(attributes || {}, null, 2);
+}
+
+function startDianxiaomiStatusPolling() {
+  if (dianxiaomiStatusTimer) {
+    window.clearInterval(dianxiaomiStatusTimer);
+  }
+  pollDianxiaomiStatus();
+  dianxiaomiStatusTimer = window.setInterval(pollDianxiaomiStatus, 2500);
+}
+
+async function pollDianxiaomiStatus() {
+  try {
+    const data = await requestJson(endpoints.dianxiaomiStatus);
+    setDianxiaomiStatus(data.message || "等待店小秘填表状态", true);
+    const controls = document.getElementById("dianxiaomi-controls");
+    if (controls) {
+      controls.style.display = data.paused ? "flex" : "none";
+    }
+    const categoryBtn = document.getElementById("dianxiaomi-category-done");
+    const productIdBtn = document.getElementById("dianxiaomi-product-id-done");
+    if (categoryBtn) categoryBtn.disabled = data.step !== "category";
+    if (productIdBtn) productIdBtn.disabled = data.step !== "product_id";
+    if (data.done && dianxiaomiStatusTimer) {
+      window.clearInterval(dianxiaomiStatusTimer);
+      dianxiaomiStatusTimer = null;
+    }
+  } catch (error) {
+    setDianxiaomiStatus(error.message, false);
+  }
+}
+
+async function continueDianxiaomiFill(step) {
+  try {
+    await requestJson(endpoints.dianxiaomiContinue, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ step }),
+    });
+    setDianxiaomiStatus("已发送继续信号，请等待脚本执行下一步", true);
+    hideDianxiaomiControls();
+  } catch (error) {
+    setDianxiaomiStatus(error.message, false);
+  }
+}
+
+function hideDianxiaomiControls() {
+  const controls = document.getElementById("dianxiaomi-controls");
+  if (controls) controls.style.display = "none";
+}
+
+function setDianxiaomiStatus(message, ok) {
+  const status = document.getElementById("dianxiaomi-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
 }
 
 async function runListingOptimization() {
@@ -726,14 +841,6 @@ function setListingStatus(message, ok) {
   if (!status) return;
   status.textContent = message;
   status.className = message ? `listing-status ${ok ? "ok" : "error"}` : "listing-status";
-}
-
-function inferTemplateKeywords(template) {
-  const lower = template.toLowerCase();
-  if (lower.includes("fan")) return "portable fan, handheld fan, usb rechargeable fan, mini fan";
-  if (lower.includes("organizer")) return "storage organizer, kitchen organizer, space saving organizer";
-  if (lower.includes("beauty")) return "beauty accessory, skin friendly, travel beauty set";
-  return "";
 }
 
 // ==================== 广告优化 ====================
@@ -1115,20 +1222,18 @@ async function loadSalesMonitorOverview() {
   if (listEl) listEl.innerHTML = '<p class="sm-empty">加载中…</p>';
 
   try {
-    const data = await requestJson("/api/sales-monitor/overview?days=30");
+    const data = await requestJson(`${endpoints.salesDashboard}?days=30`);
     smOverviewData = data;
-
-    // 统计卡片
-    const s = data.summary || {};
-    setText("sm-alert-count", s.alert_count ?? "--");
-    setText("sm-affected-skus", s.affected_skus ?? "--");
-    setText("sm-high-count", s.high_count ?? "--");
-
-    // 告警列表
-    renderSalesAlerts(data.alerts || []);
-
-    // SKU 下拉
-    populateSkuSelect(data.alerts || []);
+    renderOpsSourceStatus("sales-source-status", data.source);
+    const summaryRows = data.summary?.records || [];
+    setText("sm-alert-count", formatOpsNumber(sumOpsField(summaryRows, "sales_amount")));
+    setText("sm-affected-skus", formatOpsNumber(sumOpsField(summaryRows, "units_sold")));
+    setText("sm-high-count", formatOpsNumber(sumOpsField(summaryRows, "order_count")));
+    renderOpsTable("sm-alerts-list", data.trend?.records || [], [
+      ["date", "日期"], ["sku", "SKU"], ["marketplace", "站点"],
+      ["units_sold", "销量"], ["sales_amount", "销售额"],
+      ["refund_amount", "退款额"], ["gross_profit", "毛利"],
+    ]);
   } catch (e) {
     if (listEl) listEl.innerHTML = `<p class="sm-empty">加载失败：${escapeHtml(String(e))}</p>`;
   }
@@ -1255,6 +1360,131 @@ function renderSkuAlerts(alerts, container) {
       </article>
     `;
   }).join("");
+}
+
+// ==================== 领星运营数据模块 ====================
+
+function renderOpsSourceStatus(id, source = {}) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  const ready = source.status === "configured";
+  const partial = source.status === "partial";
+  const updatedAt = source.source_updated_at
+    ? new Date(source.source_updated_at).toLocaleString("zh-CN")
+    : "尚未同步";
+  container.className = `ops-source-card ${ready ? "is-ready" : partial ? "is-partial" : "is-missing"}`;
+  container.innerHTML = `
+    <div>
+      <strong>数据来源：领星 MCP</strong>
+      <p>${escapeHtml(source.message || "未配置领星 MCP")}</p>
+    </div>
+    <div class="ops-source-meta">
+      <span>更新时间：${escapeHtml(updatedAt)}</span>
+      ${ready ? "" : '<a class="secondary-button" href="#settings">前往 MCP 对接</a>'}
+    </div>
+  `;
+}
+
+function sumOpsField(records, field) {
+  return records.reduce((total, record) => total + (Number(record[field]) || 0), 0);
+}
+
+function formatOpsNumber(value) {
+  if (value === null || value === undefined || value === "") return "--";
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? number.toLocaleString("zh-CN", { maximumFractionDigits: 2 })
+    : String(value);
+}
+
+function formatOpsRate(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  return `${(Math.abs(number) <= 1 ? number * 100 : number).toFixed(2)}%`;
+}
+
+function renderOpsKpis(id, records, definitions) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  container.innerHTML = definitions.map(([field, label, type = "number"]) => {
+    const value = sumOpsField(records, field);
+    const formatted = type === "rate" ? formatOpsRate(value) : formatOpsNumber(value);
+    return `<article class="ops-kpi-card"><span>${escapeHtml(label)}</span><strong>${formatted}</strong></article>`;
+  }).join("");
+}
+
+function renderOpsTable(id, records, columns) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  if (!records.length) {
+    container.innerHTML = '<p class="sm-empty">暂无真实数据，请先配置并同步领星 MCP</p>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="data-table ops-data-table">
+      <thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead>
+      <tbody>${records.map((record) => `
+        <tr>${columns.map(([field]) => `<td>${escapeHtml(formatOpsNumber(record[field]))}</td>`).join("")}</tr>
+      `).join("")}</tbody>
+    </table>
+  `;
+}
+
+async function initAdsAnalysis() {
+  const level = document.getElementById("ads-entity-level");
+  if (level && !level._bound) {
+    level.addEventListener("change", loadAdsAnalysis);
+    level._bound = true;
+  }
+  await loadAdsAnalysis();
+}
+
+async function loadAdsAnalysis() {
+  const level = document.getElementById("ads-entity-level")?.value || "campaign";
+  try {
+    const data = await requestJson(`${endpoints.adsDashboard}?days=30&level=${encodeURIComponent(level)}`);
+    renderOpsSourceStatus("ads-source-status", data.source);
+    const performance = data.performance?.records || [];
+    renderOpsKpis("ads-kpis", performance, [
+      ["spend", "广告花费"], ["ad_sales", "广告销售额"],
+      ["ad_orders", "广告订单"], ["acos", "ACOS", "rate"],
+      ["roas", "ROAS"], ["tacos", "TACOS", "rate"],
+    ]);
+    renderOpsTable("ads-entities-table", data.entities?.records || [], [
+      ["entity_name", "投放实体"], ["campaign_name", "Campaign"],
+      ["impressions", "曝光"], ["clicks", "点击"], ["spend", "花费"],
+      ["ad_orders", "订单"], ["ad_sales", "销售额"], ["acos", "ACOS"],
+    ]);
+  } catch (error) {
+    renderOpsLoadError("ads-entities-table", error);
+  }
+}
+
+async function initInventoryAgent() {
+  try {
+    const data = await requestJson(`${endpoints.inventoryDashboard}?days=30`);
+    renderOpsSourceStatus("inventory-source-status", data.source);
+    const snapshot = data.snapshot?.records || [];
+    renderOpsKpis("inventory-kpis", snapshot, [
+      ["available_inventory", "可售库存"], ["reserved_inventory", "预留库存"],
+      ["inbound_inventory", "在途库存"], ["inventory_value", "库存金额"],
+    ]);
+    renderOpsTable("inventory-table", data.replenishment?.records || [], [
+      ["sku", "SKU"], ["daily_sales", "日均销量"], ["available_days", "可售天数"],
+      ["coverage_days", "覆盖天数"], ["expected_stockout_date", "预计断货日"],
+      ["recommended_replenishment", "建议补货量"],
+      ["expected_arrival_date", "预计到货日"], ["purchase_order_status", "采购状态"],
+    ]);
+  } catch (error) {
+    renderOpsLoadError("inventory-table", error);
+  }
+}
+
+function renderOpsLoadError(id, error) {
+  const container = document.getElementById(id);
+  if (container) {
+    container.innerHTML = `<p class="sm-empty">加载失败：${escapeHtml(String(error))}</p>`;
+  }
 }
 
 // ==================== FBA 成本估算 ====================
@@ -1523,14 +1753,21 @@ function setSupplyStatus(message, ok) {
 
 // ==================== 聊天功能 ====================
 
-let chatConversationId = "default";
+const CHAT_CONVERSATION_STORAGE_KEY = "amazon_agent_chat_conversation_id";
+let chatConversationId = localStorage.getItem(CHAT_CONVERSATION_STORAGE_KEY) || "default";
 let chatIsStreaming = false;
+let chatInitialized = false;
 
 // 初始化聊天
 function initChat() {
+  if (chatInitialized) return;
+  chatInitialized = true;
+
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
   const quickBtns = document.querySelectorAll(".quick-btn");
+  const refreshHistoryBtn = document.getElementById("chat-history-refresh");
+  const newSessionBtn = document.getElementById("chat-new-session");
 
   if (chatForm) {
     chatForm.addEventListener("submit", handleChatSubmit);
@@ -1540,6 +1777,150 @@ function initChat() {
     btn.addEventListener("click", () => {
       const question = btn.dataset.question;
       if (question) {
+        chatInput.value = question;
+        chatForm.dispatchEvent(new Event("submit"));
+      }
+    });
+  });
+
+  if (refreshHistoryBtn) {
+    refreshHistoryBtn.addEventListener("click", loadChatSessions);
+  }
+  if (newSessionBtn) {
+    newSessionBtn.addEventListener("click", startNewChatSession);
+  }
+  showChatWelcome();
+  loadChatSessions({ restoreLatest: true });
+}
+
+function startNewChatSession() {
+  chatConversationId = `chat-${Date.now()}`;
+  persistChatConversationId();
+  const messagesContainer = document.getElementById("chat-messages");
+  if (messagesContainer) {
+    messagesContainer.innerHTML = "";
+  }
+  showChatWelcome();
+  loadChatSessions();
+  updateChatStatus("新会话");
+}
+
+function persistChatConversationId() {
+  localStorage.setItem(CHAT_CONVERSATION_STORAGE_KEY, chatConversationId);
+}
+
+async function loadChatSessions(options = {}) {
+  try {
+    const data = await requestJson("/chat/sessions");
+    const sessions = data.sessions || [];
+    if (options.restoreLatest && chatConversationId === "default" && sessions.length) {
+      chatConversationId = sessions[0].id;
+      persistChatConversationId();
+      renderChatSessions(sessions);
+      await loadChatHistory();
+      return;
+    }
+    renderChatSessions(sessions);
+    if (options.restoreLatest) {
+      await loadChatHistory();
+    }
+  } catch (error) {
+    console.error("加载会话列表失败:", error);
+    if (options.restoreLatest) {
+      loadChatHistory();
+    }
+  }
+}
+
+function renderChatSessions(sessions) {
+  const list = document.getElementById("chat-session-list");
+  if (!list) return;
+  const knownSessions = Array.isArray(sessions) ? sessions : [];
+  const hasCurrent = knownSessions.some((session) => session.id === chatConversationId);
+  const visibleSessions = hasCurrent || chatConversationId === "default"
+    ? knownSessions
+    : [
+        {
+          id: chatConversationId,
+          title: "新会话",
+          message_count: 0,
+          updated_at: "",
+        },
+        ...knownSessions,
+      ];
+  if (!visibleSessions.length) {
+    list.innerHTML = '<p class="chat-history-empty">暂无会话记录</p>';
+    return;
+  }
+  list.innerHTML = visibleSessions
+    .map((session) => {
+      const active = session.id === chatConversationId ? " is-active" : "";
+      const title = escapeHtml(session.title || "未命名会话");
+      const meta = session.message_count ? `${session.message_count} 条消息` : "新会话";
+      return `
+        <button class="chat-session-item${active}" type="button" data-session-id="${escapeHtml(session.id)}">
+          <span>${title}</span>
+          <small>${escapeHtml(meta)}</small>
+        </button>
+      `;
+    })
+    .join("");
+  list.querySelectorAll(".chat-session-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const nextId = item.dataset.sessionId;
+      if (!nextId || nextId === chatConversationId || chatIsStreaming) return;
+      chatConversationId = nextId;
+      persistChatConversationId();
+      loadChatHistory();
+      renderChatSessions(visibleSessions);
+    });
+  });
+}
+
+async function loadChatHistory() {
+  const messagesContainer = document.getElementById("chat-messages");
+  if (!messagesContainer) return;
+
+  try {
+    const data = await requestJson(`/chat/history?conversation_id=${encodeURIComponent(chatConversationId)}`);
+    messagesContainer.innerHTML = "";
+    const messages = data.messages || [];
+    if (!messages.length) {
+      showChatWelcome();
+      return;
+    }
+    messages
+      .filter((message) => message.role === "user" || message.role === "assistant")
+      .forEach((message) => addChatMessage(message.role, message.content || ""));
+  } catch (error) {
+    console.error("加载聊天历史失败:", error);
+  }
+}
+
+function showChatWelcome() {
+  const messagesContainer = document.getElementById("chat-messages");
+  if (!messagesContainer) return;
+  messagesContainer.innerHTML = `
+    <div class="chat-welcome">
+      <div class="welcome-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <h3>欢迎使用 AI 运营助手</h3>
+      <p>我可以帮你查询运营数据、分析问题、提供建议</p>
+      <div class="quick-questions">
+        <button class="quick-btn" data-question="查询最近7天销售最好的SKU">查询热销 SKU</button>
+        <button class="quick-btn" data-question="查看库存告警">库存告警</button>
+        <button class="quick-btn" data-question="分析广告ACOS表现">广告分析</button>
+        <button class="quick-btn" data-question="查看今日待处理任务">待处理任务</button>
+      </div>
+    </div>
+  `;
+  messagesContainer.querySelectorAll(".quick-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const chatForm = document.getElementById("chat-form");
+      const chatInput = document.getElementById("chat-input");
+      const question = btn.dataset.question;
+      if (question && chatForm && chatInput) {
         chatInput.value = question;
         chatForm.dispatchEvent(new Event("submit"));
       }
@@ -1593,61 +1974,104 @@ async function handleChatSubmit(event) {
     const decoder = new TextDecoder();
     let assistantContent = "";
     let messageElement = null;
+    let sseBuffer = "";
+    let streamHadError = false;
+
+    const processSseBlock = (block) => {
+      const data = block
+        .split("\n")
+        .filter((line) => line.startsWith("data: "))
+        .map((line) => line.slice(6))
+        .join("\n")
+        .trim();
+      if (!data) return;
+
+      try {
+        const event = JSON.parse(data);
+
+        switch (event.type) {
+          case "token":
+            if (!messageElement) {
+              // 移除打字指示器，创建消息元素
+              removeTypingIndicator(typingId);
+              messageElement = addChatMessage("assistant", "");
+            }
+            assistantContent += event.content;
+            updateMessageContent(messageElement, assistantContent);
+            break;
+
+          case "tool_start":
+            if (!messageElement) {
+              removeTypingIndicator(typingId);
+              messageElement = addChatMessage("assistant", "");
+            }
+            addToolCallIndicator(messageElement, event.tool, "执行中...");
+            updateChatStatus(`正在查询 ${event.tool}...`);
+            break;
+
+          case "tool_end":
+            updateToolCallStatus(messageElement, event.tool, "完成");
+            // 把 MCP 工具的返回结果也显示出来
+            if (event.tool && event.tool.startsWith("sellersprite_") && event.result) {
+              const resultBlock = document.createElement("div");
+              resultBlock.className = "tool-result";
+              resultBlock.style.cssText = "margin:8px 0; padding:10px 12px; background:#f8fafc; border-left:3px solid #2563EB; border-radius:4px; font-size:13px; white-space:pre-wrap; max-height:400px; overflow-y:auto;";
+              resultBlock.textContent = event.result;
+              messageElement.appendChild(resultBlock);
+              scrollChatToBottom();
+            }
+            break;
+
+          case "image":
+            if (!messageElement) {
+              removeTypingIndicator(typingId);
+              messageElement = addChatMessage("assistant", "");
+            }
+            addImageMessage(messageElement, event);
+            break;
+
+          case "done":
+            chatConversationId = event.conversation_id || chatConversationId;
+            persistChatConversationId();
+            loadChatSessions();
+            break;
+
+          case "error":
+            streamHadError = true;
+            removeTypingIndicator(typingId);
+            if (!messageElement) {
+              messageElement = addChatMessage("assistant", "");
+            }
+            assistantContent += `错误: ${event.content}`;
+            updateMessageContent(messageElement, assistantContent);
+            break;
+          }
+      } catch (e) {
+        if (e.message !== "请求失败") {
+          console.error("解析事件失败:", e);
+        }
+      }
+    };
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const text = decoder.decode(value);
-      const lines = text.split("\n");
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-
-        try {
-          const event = JSON.parse(line.slice(6));
-
-          switch (event.type) {
-            case "token":
-              if (!messageElement) {
-                // 移除打字指示器，创建消息元素
-                removeTypingIndicator(typingId);
-                messageElement = addChatMessage("assistant", "");
-              }
-              assistantContent += event.content;
-              updateMessageContent(messageElement, assistantContent);
-              break;
-
-            case "tool_start":
-              if (!messageElement) {
-                removeTypingIndicator(typingId);
-                messageElement = addChatMessage("assistant", "");
-              }
-              addToolCallIndicator(messageElement, event.tool, "执行中...");
-              updateChatStatus(`正在查询 ${event.tool}...`);
-              break;
-
-            case "tool_end":
-              updateToolCallStatus(messageElement, event.tool, "完成");
-              break;
-
-            case "done":
-              chatConversationId = event.conversation_id || chatConversationId;
-              break;
-
-            case "error":
-              throw new Error(event.content);
-          }
-        } catch (e) {
-          if (e.message !== "请求失败") {
-            console.error("解析事件失败:", e);
-          }
-        }
+      sseBuffer += decoder.decode(value, { stream: true });
+      const blocks = sseBuffer.split("\n\n");
+      sseBuffer = blocks.pop() || "";
+      for (const block of blocks) {
+        processSseBlock(block);
       }
     }
 
+    sseBuffer += decoder.decode();
+    if (sseBuffer.trim()) {
+      processSseBlock(sseBuffer);
+    }
+
     // 如果没有收到内容，显示默认消息
-    if (!assistantContent && !messageElement) {
+    if (!assistantContent && !messageElement && !streamHadError) {
       removeTypingIndicator(typingId);
       addChatMessage("assistant", "抱歉，我无法处理您的请求。请稍后再试。");
     }
@@ -1657,6 +2081,7 @@ async function handleChatSubmit(event) {
   } finally {
     chatIsStreaming = false;
     updateChatStatus("在线");
+    loadChatSessions();
     scrollToBottom();
   }
 }
@@ -1695,8 +2120,55 @@ function updateMessageContent(messageElement, content) {
     // 将换行符转换为 <br> 标签
     const html = escapeHtml(content).replace(/\n/g, '<br>');
     contentDiv.innerHTML = html;
+    renderGeneratedImageLinks(contentDiv, content);
     scrollToBottom();
   }
+}
+
+function addImageMessage(messageElement, event) {
+  const contentDiv = messageElement.querySelector(".message-content");
+  if (!contentDiv || !event.url) return;
+
+  const card = document.createElement("div");
+  card.className = "generated-image-card";
+  card.dataset.url = event.url;
+
+  const title = event.title || "产品图";
+  const prompt = event.prompt || "";
+  card.innerHTML = `
+    <img src="${escapeHtml(event.url)}" alt="${escapeHtml(title)}" />
+    <div class="generated-image-meta">
+      <strong>${escapeHtml(title)}</strong>
+      ${prompt ? `<p>${escapeHtml(prompt)}</p>` : ""}
+    </div>
+  `;
+  contentDiv.appendChild(card);
+  scrollToBottom();
+}
+
+function renderGeneratedImageLinks(contentDiv, content) {
+  const matches = content.match(/\/static\/generated\/[A-Za-z0-9_-]+\.png/g) || [];
+  const uniqueUrls = [...new Set(matches)];
+  for (const url of uniqueUrls) {
+    if (contentDiv.querySelector(`.generated-image-card[data-url="${cssEscape(url)}"]`)) {
+      continue;
+    }
+    addImageMessage(
+      { querySelector: () => contentDiv },
+      {
+        url,
+        title: "产品图",
+        prompt: "",
+      },
+    );
+  }
+}
+
+function cssEscape(value) {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(value);
+  }
+  return value.replace(/"/g, '\\"');
 }
 
 // 添加工具调用指示器
@@ -1773,154 +2245,194 @@ document.addEventListener("DOMContentLoaded", initChat);
 
 // ==================== 设置功能 ====================
 
-// 加载设置
+const mcpSettingsState = { sources: [], editingId: null, query: "" };
+
+function mcpAuthHeaders(headers = {}) {
+  const token = localStorage.getItem("access_token");
+  return { ...headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+}
+
+async function requestMcpJson(url, options = {}) {
+  return requestJson(url, { ...options, headers: mcpAuthHeaders(options.headers || {}) });
+}
+
 async function loadSettings() {
   try {
-    const response = await fetch("/api/settings");
-    const settings = await response.json();
-
-    // 易仓设置
-    if (settings.eccang) {
-      document.getElementById("eccang-app-key").value = settings.eccang.app_key || "";
-      document.getElementById("eccang-base-url").value = settings.eccang.base_url || "https://open.eccang.com";
-      const eccangStatus = document.getElementById("eccang-status");
-      if (settings.eccang.connected) {
-        eccangStatus.textContent = "已连接";
-        eccangStatus.classList.add("connected");
-      } else {
-        eccangStatus.textContent = "未连接";
-        eccangStatus.classList.remove("connected");
-      }
-    }
-
-    // 亚马逊设置
-    if (settings.amazon) {
-      document.getElementById("amazon-seller-id").value = settings.amazon.seller_id || "";
-      document.getElementById("amazon-marketplace").value = settings.amazon.marketplace || "US";
-      const amazonStatus = document.getElementById("amazon-status");
-      if (settings.amazon.connected) {
-        amazonStatus.textContent = "已连接";
-        amazonStatus.classList.add("connected");
-      } else {
-        amazonStatus.textContent = "未连接";
-        amazonStatus.classList.remove("connected");
-      }
-    }
+    const result = await requestMcpJson("/api/settings/mcp-sources");
+    mcpSettingsState.sources = result.items || [];
+    renderMcpSources();
   } catch (error) {
-    console.error("加载设置失败:", error);
+    showMessage(document.getElementById("mcp-message"), `加载数据源失败：${error.message}`, "error");
   }
 }
 
-// 初始化设置表单
 function initSettings() {
-  const eccangForm = document.getElementById("eccang-form");
-  const amazonForm = document.getElementById("amazon-form");
+  const form = document.getElementById("mcp-form");
+  const search = document.getElementById("mcp-search");
+  form?.addEventListener("submit", saveMcpSettings);
+  document.getElementById("test-mcp-connection")?.addEventListener("click", testMcpConnection);
+  document.getElementById("mcp-add-server")?.addEventListener("click", () => openMcpEditor());
+  document.getElementById("mcp-close-editor")?.addEventListener("click", closeMcpEditor);
+  document.getElementById("mcp-server-list")?.addEventListener("click", handleMcpListClick);
+  document.getElementById("mcp-server-list")?.addEventListener("change", handleMcpListChange);
+  search?.addEventListener("input", () => {
+    mcpSettingsState.query = search.value.trim().toLowerCase();
+    renderMcpSources();
+  });
+}
 
-  if (eccangForm) {
-    eccangForm.addEventListener("submit", saveEccangSettings);
+function renderMcpSources() {
+  const list = document.getElementById("mcp-server-list");
+  if (!list) return;
+  const rows = mcpSettingsState.sources.filter((source) =>
+    source.name.toLowerCase().includes(mcpSettingsState.query)
+  );
+  document.getElementById("mcp-server-count").textContent = String(mcpSettingsState.sources.length);
+  if (!rows.length) {
+    list.innerHTML = '<p class="empty-state">暂无匹配的数据源</p>';
+    return;
   }
+  list.innerHTML = rows.map((source) => {
+    const capabilityCount = Object.keys(source.capabilities || {}).length;
+    const statusLabel = source.connectionStatus || "待测试";
+    return `
+      <article class="mcp-server-card" data-source-id="${source.id}">
+        <div class="mcp-server-identity">
+          <strong>${escapeHtml(source.name)}</strong>
+          <small>${capabilityCount} 项能力 · 优先级 ${source.priority} · ${escapeHtml(statusLabel)}</small>
+        </div>
+        <div class="mcp-server-actions">
+          <button class="mcp-icon-button" type="button" data-mcp-action="edit" aria-label="编辑 ${escapeHtml(source.name)}">编辑</button>
+          <label class="mcp-toggle" title="启用或停用 MCP 服务">
+            <input type="checkbox" data-mcp-action="toggle" ${source.enabled ? "checked" : ""} />
+            <span></span>
+          </label>
+        </div>
+      </article>`;
+  }).join("");
+}
 
-  if (amazonForm) {
-    amazonForm.addEventListener("submit", saveAmazonSettings);
+function handleMcpListClick(event) {
+  const button = event.target.closest('[data-mcp-action="edit"]');
+  if (!button) return;
+  const id = Number(button.closest("[data-source-id]").dataset.sourceId);
+  openMcpEditor(mcpSettingsState.sources.find((source) => source.id === id));
+}
+
+async function handleMcpListChange(event) {
+  if (event.target.dataset.mcpAction !== "toggle") return;
+  const id = Number(event.target.closest("[data-source-id]").dataset.sourceId);
+  const previous = !event.target.checked;
+  try {
+    const updated = await requestMcpJson(`/api/settings/mcp-sources/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: event.target.checked }),
+    });
+    replaceMcpSource(updated);
+  } catch (error) {
+    event.target.checked = previous;
+    showMessage(document.getElementById("mcp-message"), `状态更新失败：${error.message}`, "error");
   }
 }
 
-// 保存易仓设置
-async function saveEccangSettings(event) {
+function openMcpEditor(source = null) {
+  mcpSettingsState.editingId = source?.id || null;
+  document.getElementById("mcp-editor-title").textContent = source ? "编辑服务器" : "添加服务器";
+  document.getElementById("mcp-name").value = source?.name || "";
+  document.getElementById("mcp-url").value = source?.url || "";
+  document.getElementById("mcp-transport").value = source?.transport || "streamable_http";
+  document.getElementById("mcp-priority").value = source?.priority || 10;
+  document.getElementById("mcp-capabilities").value = source
+    ? JSON.stringify(source.capabilities || {}, null, 2)
+    : "";
+  document.getElementById("mcp-enabled-editor").checked = source?.enabled ?? true;
+  document.getElementById("mcp-api-key").value = "";
+  document.getElementById("mcp-headers").value = "";
+  document.getElementById("test-mcp-connection").disabled = !source;
+  document.getElementById("mcp-form").hidden = false;
+  document.getElementById("mcp-name").focus();
+}
+
+function closeMcpEditor() {
+  mcpSettingsState.editingId = null;
+  document.getElementById("mcp-form").hidden = true;
+}
+
+async function saveMcpSettings(event) {
   event.preventDefault();
-
-  const appKey = document.getElementById("eccang-app-key").value.trim();
-  const appSecret = document.getElementById("eccang-app-secret").value.trim();
-  const baseUrl = document.getElementById("eccang-base-url").value.trim();
-  const messageEl = document.getElementById("eccang-message");
-
-  if (!appKey || !appSecret) {
-    showMessage(messageEl, "请填写 App Key 和 App Secret", "error");
+  const messageEl = document.getElementById("mcp-message");
+  let capabilities;
+  let headers;
+  try {
+    capabilities = JSON.parse(document.getElementById("mcp-capabilities").value);
+    const rawHeaders = document.getElementById("mcp-headers").value.trim();
+    headers = rawHeaders ? JSON.parse(rawHeaders) : {};
+    if (!capabilities || Array.isArray(capabilities) || typeof capabilities !== "object") throw new Error("能力映射必须是 JSON 对象");
+    if (!headers || Array.isArray(headers) || typeof headers !== "object") throw new Error("请求头必须是 JSON 对象");
+  } catch (error) {
+    showMessage(messageEl, error.message || "JSON 格式无效", "error");
     return;
   }
 
-  try {
-    const response = await fetch("/api/settings/eccang", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        app_key: appKey,
-        app_secret: appSecret,
-        base_url: baseUrl,
-      }),
-    });
+  const payload = {
+    name: document.getElementById("mcp-name").value.trim(),
+    url: document.getElementById("mcp-url").value.trim(),
+    transport: document.getElementById("mcp-transport").value,
+    priority: Number(document.getElementById("mcp-priority").value),
+    enabled: document.getElementById("mcp-enabled-editor").checked,
+    capabilities,
+    api_key: document.getElementById("mcp-api-key").value.trim(),
+    headers,
+  };
 
-    const result = await response.json();
-    if (result.success) {
-      showMessage(messageEl, "易仓设置已保存", "success");
-      loadSettings();
-    } else {
-      showMessage(messageEl, result.message || "保存失败", "error");
-    }
+  try {
+    const id = mcpSettingsState.editingId;
+    const saved = await requestMcpJson(id ? `/api/settings/mcp-sources/${id}` : "/api/settings/mcp-sources", {
+      method: id ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    replaceMcpSource(saved);
+    showMessage(messageEl, "MCP 数据源已保存", "success");
+    closeMcpEditor();
   } catch (error) {
-    showMessage(messageEl, "保存失败: " + error.message, "error");
+    showMessage(messageEl, `保存失败：${error.message}`, "error");
   }
 }
 
-// 保存亚马逊设置
-async function saveAmazonSettings(event) {
-  event.preventDefault();
-
-  const sellerId = document.getElementById("amazon-seller-id").value.trim();
-  const marketplace = document.getElementById("amazon-marketplace").value;
-  const refreshToken = document.getElementById("amazon-refresh-token").value.trim();
-  const clientId = document.getElementById("amazon-client-id").value.trim();
-  const clientSecret = document.getElementById("amazon-client-secret").value.trim();
-  const messageEl = document.getElementById("amazon-message");
-
-  if (!sellerId || !refreshToken) {
-    showMessage(messageEl, "请填写 Seller ID 和 Refresh Token", "error");
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/settings/amazon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        seller_id: sellerId,
-        marketplace: marketplace,
-        refresh_token: refreshToken,
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    });
-
-    const result = await response.json();
-    if (result.success) {
-      showMessage(messageEl, "亚马逊设置已保存", "success");
-      loadSettings();
-    } else {
-      showMessage(messageEl, result.message || "保存失败", "error");
-    }
-  } catch (error) {
-    showMessage(messageEl, "保存失败: " + error.message, "error");
-  }
+function replaceMcpSource(source) {
+  const index = mcpSettingsState.sources.findIndex((item) => item.id === source.id);
+  if (index >= 0) mcpSettingsState.sources[index] = source;
+  else mcpSettingsState.sources.push(source);
+  renderMcpSources();
 }
 
-// 测试易仓连接
-async function testEccangConnection() {
-  const messageEl = document.getElementById("eccang-message");
+async function testMcpConnection() {
+  const messageEl = document.getElementById("mcp-message");
+  const id = mcpSettingsState.editingId;
+  if (!id) return;
   showMessage(messageEl, "正在测试连接...", "info");
 
   try {
-    const response = await fetch("/api/settings/eccang/test", {
-      method: "POST",
-    });
-
-    const result = await response.json();
+    const result = await requestMcpJson(`/api/settings/mcp-sources/${id}/test`, { method: "POST" });
+    const source = mcpSettingsState.sources.find((item) => item.id === id);
+    if (source) source.connectionStatus = result.success ? "已连接" : "连接异常";
+    renderMcpSources();
     if (result.success) {
-      showMessage(messageEl, "连接成功！" + (result.message || ""), "success");
+      showMessage(messageEl, result.message || "连接成功", "success");
     } else {
-      showMessage(messageEl, "连接失败: " + (result.message || ""), "error");
+      const missing = Object.keys(result.missing_mappings || {});
+      const suffix = missing.length ? `：${missing.join("、")}` : "";
+      showMessage(messageEl, `${result.message || "连接失败"}${suffix}`, "error");
     }
   } catch (error) {
-    showMessage(messageEl, "测试失败: " + error.message, "error");
+    const source = mcpSettingsState.sources.find((item) => item.id === id);
+    if (source) {
+      source.connectionStatus = "连接异常";
+      renderMcpSources();
+    }
+    showMessage(messageEl, `测试失败：${error.message}`, "error");
   }
 }
 
@@ -1942,7 +2454,7 @@ document.addEventListener("DOMContentLoaded", initSettings);
 
 // ==================== 战场地图 ====================
 
-function initBattlefield() {
+function removedBattlefieldView() {
   const analyzeBtn = document.getElementById("battlefield-analyze");
   if (analyzeBtn) {
     analyzeBtn.addEventListener("click", analyzeBattlefield);
@@ -2099,7 +2611,7 @@ function renderKeywords(keywordAnalysis) {
 
 // ==================== 运营天眼 ====================
 
-function initDiagnosis() {
+function removedDiagnosisView() {
   const runBtn = document.getElementById("diagnosis-run");
   if (runBtn) {
     runBtn.addEventListener("click", runDiagnosis);
@@ -2266,10 +2778,6 @@ function renderRecommendations(recommendations) {
 
   container.innerHTML = html || "<p>暂无建议</p>";
 }
-
-// 在 DOMContentLoaded 中初始化战场地图和运营天眼
-document.addEventListener("DOMContentLoaded", initBattlefield);
-document.addEventListener("DOMContentLoaded", initDiagnosis);
 
 // ==================== 侧边栏折叠 ====================
 
@@ -2538,507 +3046,6 @@ async function saveEditTask(taskId) {
 // 在 DOMContentLoaded 中初始化自动化任务
 document.addEventListener("DOMContentLoaded", initAutomation);
 
-// ==================== AI 选品功能 ====================
-
-let selectedProducts = new Set();
-
-function initAISelection() {
-  const refreshBtn = document.getElementById("refresh-products");
-  const analyzeBtn = document.getElementById("analyze-selected");
-  const selectAll = document.getElementById("select-all");
-  const researchBtn = document.getElementById("run-selection-research");
-  const keywordInput = document.getElementById("selection-keyword");
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", loadChromeProducts);
-  }
-
-  if (analyzeBtn) {
-    analyzeBtn.addEventListener("click", analyzeSelectedProducts);
-  }
-
-  const deleteBtn = document.getElementById("delete-selected");
-  if (deleteBtn) {
-    deleteBtn.addEventListener("click", deleteSelectedProducts);
-  }
-
-  if (selectAll) {
-    selectAll.addEventListener("change", toggleSelectAll);
-  }
-
-  if (researchBtn) {
-    researchBtn.addEventListener("click", runProductResearch);
-  }
-
-  if (keywordInput) {
-    keywordInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        runProductResearch();
-      }
-    });
-  }
-}
-
-async function runProductResearch() {
-  const keywordInput = document.getElementById("selection-keyword");
-  const marketplaceSelect = document.getElementById("selection-marketplace");
-  const categorySelect = document.getElementById("selection-category");
-  const button = document.getElementById("run-selection-research");
-  const progress = document.getElementById("research-progress");
-  const result = document.getElementById("product-research-result");
-  const keyword = keywordInput.value.trim();
-
-  if (!keyword) {
-    alert("请输入关键词");
-    keywordInput.focus();
-    return;
-  }
-
-  button.disabled = true;
-  button.innerHTML = '<span class="loading"></span>研究中...';
-  progress.style.display = "block";
-  result.style.display = "none";
-  result.innerHTML = "";
-
-  try {
-    const data = await requestJson(endpoints.selectionResearch, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        keyword,
-        marketplace: marketplaceSelect.value,
-        category: categorySelect.value,
-      }),
-    });
-    renderProductResearch(data);
-    document.getElementById("analyzed-count").textContent = data.market_overview.sample_size;
-    document.getElementById("recommended-count").textContent = data.decision.status === "no_go" ? "0" : "1";
-  } catch (error) {
-    result.style.display = "block";
-    result.innerHTML = `<div class="research-error">${escapeHtml(error.message)}</div>`;
-  } finally {
-    progress.style.display = "none";
-    button.disabled = false;
-    button.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      开始研究
-    `;
-  }
-}
-
-function renderProductResearch(data) {
-  const result = document.getElementById("product-research-result");
-  const overview = data.market_overview;
-  const pricing = data.pricing_advice;
-  const decision = data.decision;
-  const decisionClass = decision.status === "go" ? "good" : decision.status === "cautious" ? "warning" : "bad";
-
-  result.style.display = "grid";
-  result.innerHTML = `
-    ${overview.sample_note ? `<div class="research-sample-note">${escapeHtml(overview.sample_note)}</div>` : ""}
-    <section class="research-section">
-      <div class="research-section-title">
-        <h3>市场概览</h3>
-        <span>基于 “${escapeHtml(data.keyword)}” 分析</span>
-      </div>
-      <div class="research-overview-grid">
-        ${renderOverviewCard("月销量估算", formatNumber(overview.monthly_sales_estimate), "件/月", "sales")}
-        ${renderOverviewCard("平均售价", formatMoney(overview.avg_price), "采集均价", "price")}
-        ${renderOverviewCard("机会评分", `${overview.opportunity_score}/10`, `竞争度：${overview.competition}`, "score")}
-        ${renderOverviewCard("竞品样本", `${overview.sample_size}`, `匹配 ${overview.matched_count} / 池 ${overview.total_competitor_pool}`, "sample")}
-      </div>
-    </section>
-
-    <section class="research-section">
-      <div class="research-section-title">
-        <h3>蓝海关键词库</h3>
-        <span>${data.keywords.length} 个关键词</span>
-      </div>
-      <div class="table-wrap research-keyword-table">
-        <table>
-          <thead>
-            <tr>
-              <th>关键词</th>
-              <th>搜索量估算</th>
-              <th>竞争度</th>
-              <th>机会评分</th>
-              <th>趋势</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.keywords.map(renderResearchKeywordRow).join("")}
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="research-section">
-      <div class="research-section-title">
-        <h3>TOP 竞品分析</h3>
-        <span>${data.competitors.length} 款竞品</span>
-      </div>
-      <div class="research-competitor-grid">
-        ${data.competitors.length ? data.competitors.map(renderResearchCompetitorCard).join("") : '<p class="empty-state">暂无采集竞品，请先用 Chrome 插件采集 Amazon 商品。</p>'}
-      </div>
-    </section>
-
-    <section class="research-section pricing-advice">
-      <div class="research-section-title">
-        <h3>成本、定价、利润区间</h3>
-      </div>
-      <div class="pricing-grid">
-        <div><span>目标售价</span><strong>${formatMoney(pricing.target_price_min)} - ${formatMoney(pricing.target_price_max)}</strong></div>
-        <div><span>成本上限</span><strong>${formatMoney(pricing.cost_min)} - ${formatMoney(pricing.cost_max)}</strong></div>
-        <div><span>利润区间</span><strong>${formatMoney(pricing.profit_min)} - ${formatMoney(pricing.profit_max)}</strong></div>
-        <div><span>毛利率</span><strong>${pricing.margin_min}% - ${pricing.margin_max}%</strong></div>
-      </div>
-      <ul class="pricing-notes">${pricing.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
-    </section>
-
-    <section class="research-report ${decisionClass}">
-      <div class="research-report-header">
-        <div>
-          <h3>AI 选品决策报告</h3>
-          <span>${data.generated_by_ai ? "DeepSeek 润色生成" : "规则模型生成"}</span>
-        </div>
-        <strong>${escapeHtml(decision.label)}</strong>
-      </div>
-      <p>${escapeHtml(data.report)}</p>
-      <div class="decision-lists">
-        <div>
-          <h4>判断依据</h4>
-          <ul>${decision.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul>
-        </div>
-        <div>
-          <h4>下一步</h4>
-          <ul>${decision.next_steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderOverviewCard(label, value, meta, type) {
-  return `
-    <article class="research-overview-card ${type}">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
-      <small>${escapeHtml(meta)}</small>
-    </article>
-  `;
-}
-
-function renderResearchKeywordRow(keyword) {
-  return `
-    <tr>
-      <td><strong>${escapeHtml(keyword.keyword)}</strong></td>
-      <td>${formatNumber(keyword.search_volume)}</td>
-      <td><span class="competition-pill ${competitionClass(keyword.competition)}">${escapeHtml(keyword.competition)}</span></td>
-      <td>${keyword.opportunity_score}/10</td>
-      <td>${escapeHtml(keyword.trend)}</td>
-    </tr>
-  `;
-}
-
-function renderResearchCompetitorCard(competitor) {
-  const priceText = competitor.has_price ? formatMoney(competitor.price) : "价格未采集";
-  const reviewText = competitor.has_review_count ? `${formatNumber(competitor.review_count)} 评论` : "评论数未采集";
-  const imageHtml = competitor.main_image
-    ? `<img src="${escapeHtml(competitor.main_image)}" alt="" />`
-    : `${escapeHtml((competitor.title || competitor.asin || "-").slice(0, 1).toUpperCase())}`;
-  const qualityNotes = competitor.data_quality_notes && competitor.data_quality_notes.length
-    ? `<div class="competitor-data-notes">${competitor.data_quality_notes.map((note) => `<span>${escapeHtml(note)}</span>`).join("")}</div>`
-    : "";
-  return `
-    <article class="research-competitor-card">
-      <div class="competitor-card-body">
-        <div class="competitor-thumb">${imageHtml}</div>
-        <div>
-          <h4>${escapeHtml(competitor.title)}</h4>
-          <div class="competitor-meta">
-            <strong class="${competitor.has_price ? "" : "muted-value"}">${priceText}</strong>
-            <span>${competitor.rating ? competitor.rating.toFixed(1) : "0.0"} ★</span>
-            <span>${reviewText}</span>
-          </div>
-          <div class="competitor-asin">ASIN: ${escapeHtml(competitor.asin)}</div>
-        </div>
-      </div>
-      ${qualityNotes}
-      <div class="competitor-card-footer">
-        <span>月销估算 ${formatNumber(competitor.estimated_monthly_sales)}</span>
-        ${competitor.badge ? `<em>${escapeHtml(competitor.badge)}</em>` : ""}
-        ${competitor.url ? `<a href="${escapeHtml(competitor.url)}" target="_blank" rel="noopener">查看</a>` : ""}
-      </div>
-    </article>
-  `;
-}
-
-function competitionClass(value) {
-  if (value === "低") return "low";
-  if (value === "中") return "medium";
-  return "high";
-}
-
-function formatMoney(value) {
-  return `$${Number(value || 0).toFixed(2)}`;
-}
-
-function formatNumber(value) {
-  return Number(value || 0).toLocaleString("zh-CN");
-}
-
-async function loadChromeProducts() {
-  const tbody = document.getElementById("products-body");
-  const totalProducts = document.getElementById("total-products");
-
-  try {
-    const response = await fetch("/api/chrome/products");
-    const data = await response.json();
-
-    if (data.products && data.products.length > 0) {
-      renderProducts(data.products);
-      totalProducts.textContent = data.products.length;
-    } else {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="empty-state">
-            <div class="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-            </div>
-            <p>暂无采集数据</p>
-            <p class="empty-hint">请使用 Chrome 插件在 Amazon 商品页面采集数据</p>
-          </td>
-        </tr>
-      `;
-      totalProducts.textContent = "0";
-    }
-  } catch (error) {
-    console.error("加载商品失败:", error);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty-state">
-          <p>加载失败: ${error.message}</p>
-          <p class="empty-hint">请确保后端服务已启动</p>
-        </td>
-      </tr>
-    `;
-  }
-}
-
-function renderProducts(products) {
-  const tbody = document.getElementById("products-body");
-
-  tbody.innerHTML = products
-    .map(
-      (product) => `
-    <tr>
-      <td>
-        <input type="checkbox" class="product-checkbox" data-asin="${escapeHtml(product.asin || '')}" />
-      </td>
-      <td>
-        ${product.main_image ? `<img src="${escapeHtml(product.main_image)}" class="product-thumb" />` : '<span class="no-image">无图片</span>'}
-      </td>
-      <td>
-        <span class="asin-text">${escapeHtml(product.asin || "-")}</span>
-      </td>
-      <td class="product-title-cell">
-        ${escapeHtml(product.title || product.asin || "-")}
-      </td>
-      <td>${product.price ? "$" + product.price.toFixed(2) : "-"}</td>
-      <td>${product.rating ? product.rating.toFixed(1) + " ★" : "-"}</td>
-      <td>${product.review_count ? product.review_count.toLocaleString() : "-"}</td>
-      <td>
-        <a href="${escapeHtml(product.url || "#")}" target="_blank" class="product-link">
-          查看商品
-        </a>
-        <button class="action-btn danger" onclick="deleteProduct('${escapeHtml(product.asin || "")}')">
-          删除
-        </button>
-      </td>
-    </tr>
-  `
-    )
-    .join("");
-
-  // 绑定复选框事件
-  document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
-    checkbox.addEventListener("change", updateSelectedCount);
-  });
-}
-
-function toggleSelectAll(event) {
-  const checked = event.currentTarget.checked;
-  document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
-    checkbox.checked = checked;
-  });
-  updateSelectedCount();
-}
-
-function updateSelectedCount() {
-  const checkboxes = document.querySelectorAll(".product-checkbox:checked");
-  const analyzeBtn = document.getElementById("analyze-selected");
-  const deleteBtn = document.getElementById("delete-selected");
-
-  selectedProducts.clear();
-  checkboxes.forEach((cb) => {
-    selectedProducts.add(cb.dataset.asin);
-  });
-
-  const count = selectedProducts.size;
-
-  if (analyzeBtn) {
-    analyzeBtn.disabled = count === 0;
-    analyzeBtn.textContent = count > 0 ? `AI 分析选中商品 (${count})` : "AI 分析选中商品";
-  }
-
-  if (deleteBtn) {
-    deleteBtn.disabled = count === 0;
-    deleteBtn.textContent = count > 0 ? `删除选中商品 (${count})` : "删除选中商品";
-  }
-}
-
-async function deleteSelectedProducts() {
-  if (selectedProducts.size === 0) {
-    alert("请先选择要删除的商品");
-    return;
-  }
-
-  if (!confirm(`确定要删除选中的 ${selectedProducts.size} 个商品吗？`)) return;
-
-  try {
-    const response = await fetch("/api/chrome/products/delete-batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ asins: Array.from(selectedProducts) })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      selectedProducts.clear();
-      loadChromeProducts();
-    } else {
-      alert("删除失败: " + (data.error || "未知错误"));
-    }
-  } catch (error) {
-    alert("删除失败: " + error.message);
-  }
-}
-
-async function deleteProduct(asin) {
-  if (!asin) return;
-  if (!confirm(`确定要删除 ASIN: ${asin} 吗？`)) return;
-
-  try {
-    const response = await fetch(`/api/chrome/products/${asin}`, {
-      method: "DELETE"
-    });
-    const data = await response.json();
-
-    if (data.success) {
-      // 从选中集合移除
-      selectedProducts.delete(asin);
-      // 重新加载列表
-      loadChromeProducts();
-    } else {
-      alert("删除失败: " + (data.error || "未知错误"));
-    }
-  } catch (error) {
-    alert("删除失败: " + error.message);
-  }
-}
-
-async function analyzeSelectedProducts() {
-  if (selectedProducts.size === 0) {
-    alert("请先选择要分析的商品");
-    return;
-  }
-
-  const analyzeBtn = document.getElementById("analyze-selected");
-  const analysisResult = document.getElementById("analysis-result");
-  const analysisContent = document.getElementById("analysis-content");
-
-  try {
-    analyzeBtn.disabled = true;
-    analyzeBtn.innerHTML = '<span class="loading"></span>分析中...';
-
-    // 调用后端 AI 分析接口
-    const response = await fetch("/api/chrome/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ asins: Array.from(selectedProducts) })
-    });
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "分析失败");
-    }
-
-    const a = data.analysis;
-    const scoreClass = a.score >= 80 ? "good" : a.score >= 60 ? "warning" : "bad";
-
-    analysisResult.style.display = "block";
-    analysisContent.innerHTML = `
-      <div class="analysis-card">
-        <h4>AI 选品分析报告</h4>
-        <p>已分析 ${data.product_count} 个商品</p>
-        <div style="margin-top: 16px;">
-          <div class="analysis-score ${scoreClass}">推荐指数: ${a.score}/100</div>
-        </div>
-        <div style="margin-top: 16px;">
-          <strong>总结：</strong>
-          <p style="margin-top: 8px;">${escapeHtml(a.summary || "")}</p>
-        </div>
-        <div style="margin-top: 12px;">
-          <strong>市场潜力：</strong>
-          <p style="margin-top: 4px;">${escapeHtml(a.market_potential || "")}</p>
-        </div>
-        <div style="margin-top: 12px;">
-          <strong>竞争分析：</strong>
-          <p style="margin-top: 4px;">${escapeHtml(a.competition || "")}</p>
-        </div>
-        <div style="margin-top: 12px;">
-          <strong>利润建议：</strong>
-          <p style="margin-top: 4px;">${escapeHtml(a.profit_advice || "")}</p>
-        </div>
-        ${a.risks && a.risks.length > 0 ? `
-        <div style="margin-top: 12px;">
-          <strong>风险提示：</strong>
-          <ul style="margin-top: 4px; padding-left: 20px;">
-            ${a.risks.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
-          </ul>
-        </div>
-        ` : ""}
-        ${a.suggestions && a.suggestions.length > 0 ? `
-        <div style="margin-top: 12px;">
-          <strong>操作建议：</strong>
-          <ul style="margin-top: 4px; padding-left: 20px;">
-            ${a.suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join("")}
-          </ul>
-        </div>
-        ` : ""}
-      </div>
-    `;
-
-    // 更新统计
-    document.getElementById("analyzed-count").textContent = data.product_count;
-    document.getElementById("recommended-count").textContent = a.score >= 70 ? data.product_count : 0;
-
-  } catch (error) {
-    alert("分析失败: " + error.message);
-  } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-      AI 分析选中商品
-    `;
-  }
-}
-
-// 在 DOMContentLoaded 中初始化 AI 选品
-document.addEventListener("DOMContentLoaded", initAISelection);
 document.addEventListener("DOMContentLoaded", initListingOptimization);
 document.addEventListener("DOMContentLoaded", initAdOptimization);
 document.addEventListener("DOMContentLoaded", initSupplyChainAnalysis);

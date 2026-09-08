@@ -4,25 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Amazon Agent 运营台</title>
-    <link rel="stylesheet" href="/static/styles.css?v=canva-polish-20260608" />
-  </head>
+    <link rel="stylesheet" href="/static/styles.css?v=ui-cleanup-20260719-4" />
+    <link rel="stylesheet" href="/static/selection-workbench.css" />
+    <link rel="stylesheet" href="/static/image-studio.css" />
+    <link rel="stylesheet" href="/static/image-editor.css?v=20260722-2" />
+<script src="/static/auth-check.js"></script>
+</head>
   <body>
-    <div class="app-shell">
+<div class="app-shell">
       <!-- 侧边栏 -->
       <aside class="sidebar" id="sidebar">
-        <div class="brand-block">
-          <span class="brand-mark">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 01-8 0"/>
-            </svg>
-          </span>
-          <div>
-            <strong>Amazon Agent</strong>
-            <span>跨境电商运营中心</span>
-          </div>
-        </div>
         <nav class="side-nav" aria-label="主导航">
           <!-- 核心功能 -->
           <div class="nav-section" data-section="core">
@@ -36,12 +27,6 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 </span>
                 运营总览
-              </a>
-              <a class="nav-item" href="#imports" data-page="imports">
-                <span class="nav-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </span>
-                数据导入
               </a>
               <a class="nav-item" href="#analytics" data-page="analytics">
                 <span class="nav-icon">
@@ -75,7 +60,13 @@
                 <span class="nav-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
                 </span>
-                Listing 优化
+                Listing
+              </a>
+              <a class="nav-item" href="#image-studio" data-page="image-studio">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </span>
+                图片制作
               </a>
               <a class="nav-item" href="#ad-optimization" data-page="ad-optimization">
                 <span class="nav-icon">
@@ -107,17 +98,11 @@
                 </span>
                 AI 助手
               </a>
-              <a class="nav-item" href="#battlefield" data-page="battlefield">
+              <a class="nav-link" href="/rag">
                 <span class="nav-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
                 </span>
-                战场地图
-              </a>
-              <a class="nav-item" href="#diagnosis" data-page="diagnosis">
-                <span class="nav-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                </span>
-                运营天眼
+                知识库问答
               </a>
               <a class="nav-item" href="#sales-monitor" data-page="sales-monitor">
                 <span class="nav-icon">
@@ -157,17 +142,45 @@
                 <span class="nav-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                 </span>
-                ERP 对接
+                MCP 对接
+              </a>
+            </div>
+          </div>
+
+          <!-- 系统管理（仅管理员可见） -->
+          <div class="nav-section" id="nav-section-admin" style="display:none;">
+            <div class="nav-section-header">
+              <span class="nav-section-title">系统管理</span>
+              <svg class="nav-section-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="nav-section-items">
+              <a class="nav-item" href="#" onclick="showAdminPanel();return false;">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-3-3.87"/><path d="M7 21v-2a4 4 0 013-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                用户管理
+              </a>
+              <a class="nav-item" href="#settings" data-page="settings">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </span>
+                系统设置
               </a>
             </div>
           </div>
         </nav>
         <div class="sidebar-footer">
-          <div class="status-indicator">
-            <span class="status-dot"></span>
-            <strong id="system-status">运行中</strong>
+          <button class="sidebar-user-card" id="sidebar-user-menu" type="button" aria-expanded="false" aria-controls="sidebar-user-popover">
+            <span class="sidebar-user-avatar" id="sidebar-user-avatar">U</span>
+            <span class="sidebar-user-details">
+              <strong id="sidebar-user-name">用户</strong>
+              <small id="sidebar-user-role">用户</small>
+            </span>
+          </button>
+          <div class="sidebar-user-popover" id="sidebar-user-popover" hidden>
+            <button id="sidebar-admin-action" type="button" hidden>用户管理</button>
+            <button id="sidebar-logout-action" type="button">退出登录</button>
           </div>
-          <span class="version-tag">本地 MVP v0.1</span>
         </div>
       </aside>
 
@@ -274,100 +287,6 @@
           </section>
         </div>
 
-        <!-- ========== 页面：数据导入 ========== -->
-        <div class="page" id="page-imports" style="display:none">
-          <section class="page-heading">
-            <div>
-              <span class="eyebrow">Data Import</span>
-              <h2>数据导入</h2>
-            </div>
-            <div class="heading-actions">
-              <button id="sample-date" class="ghost-button" type="button">使用示例日期</button>
-            </div>
-          </section>
-
-          <div class="upload-grid">
-            <form class="upload-card" data-endpoint="/imports/sku">
-              <div class="upload-card-icon sku-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
-              <label class="file-type">SKU<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">基础商品与负责人</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-            <form class="upload-card" data-endpoint="/imports/sales">
-              <div class="upload-card-icon sales-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-              </div>
-              <label class="file-type">销售<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">订单与销售额</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-            <form class="upload-card" data-endpoint="/imports/ads">
-              <div class="upload-card-icon ads-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </div>
-              <label class="file-type">广告<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">花费、点击与转化</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-            <form class="upload-card" data-endpoint="/imports/inventory">
-              <div class="upload-card-icon inventory-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-              </div>
-              <label class="file-type">库存<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">可售、在途与预留</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-            <form class="upload-card" data-endpoint="/imports/profit">
-              <div class="upload-card-icon profit-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              </div>
-              <label class="file-type">利润<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">成本、费用与广告费</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-            <form class="upload-card" data-endpoint="/imports/returns">
-              <div class="upload-card-icon returns-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-              </div>
-              <label class="file-type">退货评价<input name="file" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <span class="file-hint">退货、差评与评分</span>
-              <div class="drop-zone">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>拖拽文件到此处或点击选择</span>
-              </div>
-              <button type="submit" class="upload-btn">上传文件</button>
-              <output></output>
-            </form>
-          </div>
-        </div>
-
         <!-- ========== 页面：风险分析 ========== -->
         <div class="page" id="page-analytics" style="display:none">
           <section class="page-heading">
@@ -472,170 +391,189 @@
 
         <!-- ========== 页面：AI 选品 ========== -->
         <div class="page" id="page-ai-selection" style="display:none">
-          <section class="page-heading">
-            <div>
-              <span class="eyebrow">AI Selection</span>
-              <h2>AI 选品分析</h2>
-            </div>
-            <div class="heading-actions">
-              <button id="refresh-products" class="ghost-button" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-                刷新
-              </button>
-              <button id="analyze-selected" class="primary-button" type="button" disabled>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-                AI 分析选中商品
-              </button>
-              <button id="delete-selected" class="danger-button" type="button" disabled>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                删除选中商品
-              </button>
-            </div>
-          </section>
+          <div id="selection-workbench" class="selection-workbench" aria-live="polite">
+            <div class="selection-shell">
+              <aside class="selection-projects-panel">
+                <div class="selection-panel-title">
+                  <div>
+                    <span class="eyebrow">Projects</span>
+                    <h3>选品项目</h3>
+                  </div>
+                  <button type="button" class="selection-icon-button" data-selection-action="show-project-form" aria-label="新建项目">＋</button>
+                </div>
+                <form id="selection-project-form" class="selection-project-form" hidden>
+                  <label>项目名称<input name="name" required maxlength="256" placeholder="例如：便携风扇" /></label>
+                  <label>站点<select name="marketplace"><option value="US">US 美国站</option><option value="UK">UK 英国站</option><option value="DE">DE 德国站</option><option value="JP">JP 日本站</option></select></label>
+                  <label>目标币种<select name="target_currency"><option value="USD">USD</option><option value="GBP">GBP</option><option value="EUR">EUR</option><option value="JPY">JPY</option></select></label>
+                  <div class="selection-form-actions"><button type="button" class="ghost-button" data-selection-action="cancel-project">取消</button><button type="submit" class="primary-button">保存项目</button></div>
+                </form>
+                <div id="selection-project-list" class="selection-project-list"></div>
+              </aside>
 
-          <div class="ai-selection-content">
-            <!-- 选品研究 -->
-            <section class="research-panel">
-              <div class="research-panel-header">
-                <div>
-                  <span class="eyebrow">Product Research</span>
-                  <h3>选品研究</h3>
-                  <p>输入关键词，基于 Chrome 插件采集的 Amazon 商品池生成蓝海关键词库、利润建议和选品决策报告</p>
-                </div>
-                <span class="research-source-badge">Chrome 采集数据 + 本地估算模型</span>
-              </div>
-              <div class="research-toolbar">
-                <div class="research-input-wrap">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input id="selection-keyword" type="search" placeholder="输入关键词，例如 portable fan" autocomplete="off" />
-                </div>
-                <select id="selection-marketplace" aria-label="选择站点">
-                  <option value="US">US 美国站</option>
-                  <option value="UK">UK 英国站</option>
-                  <option value="DE">DE 德国站</option>
-                  <option value="JP">JP 日本站</option>
-                  <option value="CA">CA 加拿大站</option>
-                </select>
-                <select id="selection-category" aria-label="选择类目">
-                  <option value="all">全部类目</option>
-                  <option value="Kitchen">Kitchen</option>
-                  <option value="Home">Home</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Beauty">Beauty</option>
-                </select>
-                <button id="run-selection-research" class="primary-button" type="button">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                  开始研究
-                </button>
-              </div>
-              <div id="research-progress" class="research-progress" style="display:none" aria-live="polite">
-                <div class="research-progress-header">
-                  <strong>分析中</strong>
-                  <span>正在筛选竞品、扩展蓝海关键词并生成利润建议</span>
-                </div>
-                <div class="research-steps">
-                  <span>抓取采集商品池</span>
-                  <span>分析市场概览</span>
-                  <span>生成蓝海关键词</span>
-                  <span>输出决策报告</span>
-                </div>
-              </div>
-              <div id="product-research-result" class="research-result" style="display:none"></div>
-            </section>
+              <main class="selection-workspace-panel">
+                <div id="selection-notice" class="selection-notice" hidden></div>
+                <div id="selection-project-workspace" hidden>
+                  <header class="selection-project-header">
+                    <div><span class="eyebrow">Current Project</span><h3 id="selection-current-project">—</h3><p id="selection-current-meta">—</p></div>
+                    <span class="selection-data-badge">仅 MCP 数据</span>
+                  </header>
+                  <nav class="selection-stage-nav" aria-label="选品流程">
+                    <button type="button" class="is-active" data-selection-stage-target="keywords"><span>1</span>关键词调研</button>
+                    <button type="button" data-selection-stage-target="direction"><span>2</span>产品方向</button>
+                    <button type="button" data-selection-stage-target="pricing"><span>3</span>成本定价</button>
+                    <button type="button" data-selection-stage-target="report"><span>4</span>决策报告</button>
+                  </nav>
+                  <section class="selection-stage is-active" data-selection-stage="keywords">
+                    <div class="selection-stage-heading"><div><span class="eyebrow">Keyword Research</span><h3>关键词调研</h3><p>从种子词、ASIN 或类目获取真实关键词数据，可多选合并为一个产品方向。</p></div></div>
+                    <form id="selection-keyword-form" class="selection-keyword-form">
+                      <div class="selection-input-tabs" role="tablist">
+                        <button type="button" class="is-active" data-selection-input-type="seed">种子词</button>
+                        <button type="button" data-selection-input-type="asin">ASIN 反查</button>
+                        <button type="button" data-selection-input-type="category">类目查词</button>
+                      </div>
+                      <div class="selection-keyword-controls">
+                        <label class="selection-grow"><span>调研输入</span><input id="selection-research-input" name="input_value" required placeholder="输入种子关键词" /></label>
+                        <label><span>类目（可选）</span><input name="category" placeholder="例如 Home" /></label>
+                        <button type="submit" class="primary-button">开始调研</button>
+                      </div>
+                    </form>
+                      <div class="selection-table-card selection-mcp-full-card">
+                        <div class="selection-table-toolbar"><span>卖家精灵 MCP 完整字段</span><input id="selection-keyword-filter" type="search" placeholder="筛选关键词…" /><span id="selection-keyword-count">0 条数据</span><span id="selection-mcp-page-info">暂无分页结果</span><span>已选 <strong id="selection-selected-count">0</strong> 条</span><span id="selection-mcp-field-count">0 个字段</span><button type="button" class="primary-button" data-selection-action="save-keywords">保存并研究产品方向</button></div>
+                        <div id="selection-mcp-fields" class="selection-table-wrap"></div>
+                      </div>
+                    </section>
 
-            <!-- 统计卡片 -->
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                </div>
-                <div>
-                  <span class="stat-label">已采集商品</span>
-                  <span class="stat-value" id="total-products">0</span>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                </div>
-                <div>
-                  <span class="stat-label">已分析</span>
-                  <span class="stat-value" id="analyzed-count">0</span>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                </div>
-                <div>
-                  <span class="stat-label">推荐选品</span>
-                  <span class="stat-value" id="recommended-count">0</span>
-                </div>
-              </div>
-            </div>
+                  <section class="selection-stage" data-selection-stage="direction" hidden>
+                    <div class="selection-stage-heading"><div><span class="eyebrow">Product Direction</span><h3>产品方向研究</h3><p>将已选关键词的完整卖家精灵数据交给 LLM，生成主词、长尾词与产品方向。</p></div><button type="button" class="primary-button" data-selection-action="build-direction">重新研究</button></div>
+                    <div id="selection-direction-result" class="selection-result-card"></div>
+                  </section>
 
-            <!-- 商品列表 -->
-            <div class="panel">
-              <div class="section-heading">
-                <h2>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                  Chrome 插件采集商品
-                </h2>
-                <span class="heading-hint">通过 Chrome 插件从 Amazon 页面采集的商品数据</span>
-              </div>
-              <div class="table-wrap">
-                <table id="products-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" id="select-all" />
-                      </th>
-                      <th>图片</th>
-                      <th>ASIN</th>
-                      <th>商品标题</th>
-                      <th>价格</th>
-                      <th>评分</th>
-                      <th>评论数</th>
-                      <th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody id="products-body">
-                    <tr>
-                      <td colspan="8" class="empty-state">
-                        <div class="empty-icon">
-                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                        </div>
-                        <p>暂无采集数据</p>
-                        <p class="empty-hint">请使用 Chrome 插件在 Amazon 商品页面采集数据</p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  <section class="selection-stage" data-selection-stage="pricing" hidden>
+                    <div class="selection-stage-heading"><div><span class="eyebrow">Cost & Pricing</span><h3>成本与定价</h3><p>最终售价净利润固定为 40%，所有计算由后端 Decimal 规则完成。</p></div></div>
+                    <form id="selection-pricing-form" class="selection-pricing-grid">
+                      <label>商品价格<input name="product_price" type="number" step="0.01" min="0" required /></label>
+                      <label>国内运费<input name="domestic_shipping" type="number" step="0.01" min="0" value="0" required /></label>
+                      <label>成本币种<input name="source_currency" value="CNY" maxlength="8" required /></label>
+                      <label>实际重量 kg<input name="actual_weight_kg" type="number" step="0.001" min="0" required /></label>
+                      <label>长 cm<input name="length_cm" type="number" step="0.1" min="0" required /></label>
+                      <label>宽 cm<input name="width_cm" type="number" step="0.1" min="0" required /></label>
+                      <label>高 cm<input name="height_cm" type="number" step="0.1" min="0" required /></label>
+                      <label>运费模板<select id="selection-freight-template" name="freight_template_id" required></select></label>
+                      <label>平台佣金<input name="commission_rate" value="0.15" readonly /></label>
+                      <label>目标净利润率<input name="target_net_margin" value="0.40" readonly /></label>
+                      <label class="selection-span-2">手动汇率（可选）<input name="manual_exchange_rate" type="number" step="0.000001" min="0" placeholder="留空则从 MCP 自动获取" /></label>
+                      <button type="submit" class="primary-button selection-span-2">计算并保存定价</button>
+                    </form>
+                    <div id="selection-pricing-result" class="selection-result-card"></div>
+                  </section>
 
-            <!-- AI 分析结果 -->
-            <div class="panel" id="analysis-result" style="display:none">
-              <div class="section-heading">
-                <h2>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-                  AI 分析结果
-                </h2>
-              </div>
-              <div id="analysis-content"></div>
+                  <section class="selection-stage" data-selection-stage="report" hidden>
+                    <div class="selection-stage-heading"><div><span class="eyebrow">Decision Report</span><h3>决策报告</h3><p>规则引擎决定评分与结论，真实 LLM 仅解释证据。</p></div><button type="button" class="primary-button" data-selection-action="generate-report">生成 / 重新生成</button></div>
+                    <div id="selection-report-result" class="selection-result-card"></div>
+                  </section>
+                </div>
+              </main>
             </div>
           </div>
         </div>
+        <!-- ========== 页面：图片制作 ========== -->
+        <div class="page" id="page-image-studio" style="display:none">
+          <section class="page-heading image-studio-heading">
+            <div>
+              <span class="eyebrow">Image Workflow Studio</span>
+              <h2>图片制作</h2>
+              <p>用可复用工作流生成 Amazon 主图、场景图和产品素材</p>
+            </div>
+          </section>
 
-        <!-- ========== 页面：Listing 优化 ========== -->
+          <div class="image-creative-shell">
+            <aside class="image-studio-panel image-studio-sidebar">
+              <div class="image-panel-heading"><h3>运营模板</h3></div>
+              <div id="image-template-list" class="image-template-list"></div>
+              <div class="image-panel-heading"><h3>提示词库</h3></div>
+              <div id="image-prompt-list" class="image-workflow-list"></div>
+            </aside>
+            <section class="image-studio-main image-creative-main">
+              <div class="image-creative-heading"><span class="eyebrow">Amazon Creative Studio</span><h3>创建商品素材</h3><p>选择模板，补充产品与卖点信息，快速生成可用于 Listing 的图片。</p></div>
+              <label for="image-prompt-name">提示词名称</label>
+              <div class="image-prompt-meta"><input id="image-prompt-name" type="text" placeholder="例如：收纳盒美国站场景图" /><select id="image-prompt-category"><option value="main-image">主图</option><option value="lifestyle">场景图</option><option value="benefit">卖点图</option><option value="a-plus">A+ 内容</option><option value="custom" selected>自定义</option></select><button id="image-save-prompt" type="button">保存提示词</button></div>
+              <label for="image-run-prompt">图片提示词</label>
+              <textarea id="image-run-prompt" rows="7" placeholder="描述产品、场景、构图、光线和需表达的卖点"></textarea>
+              <label for="image-negative-prompt">排除内容</label>
+              <input id="image-negative-prompt" type="text" placeholder="例如：logo, watermark, blurry" />
+              <div class="image-generation-settings"><label>模型<select id="image-model"><option value="qwen-image-2.0-pro">千问图片 Pro</option><option value="qwen-image-2.0">千问图片</option></select></label><label>尺寸<select id="image-size"><option value="1024x1024">1:1 商品图</option><option value="1536x1024">3:2 横幅</option><option value="1024x1536">2:3 竖图</option></select></label><label>数量<select id="image-count"><option value="1">1 张</option><option value="2">2 张</option><option value="4">4 张</option></select></label></div>
+              <div class="image-run-actions"><label class="image-upload-button">上传产品/参考图<input id="image-reference-upload" type="file" accept="image/png,image/jpeg,image/webp" hidden /></label><span id="image-reference-status">未选择参考图</span><button id="image-generate" class="primary-button" type="button">生成素材</button></div>
+              <div id="image-run-status" class="image-run-status" aria-live="polite"></div>
+            </section>
+          </div>
+
+          <div class="image-studio-shell" style="display:none">
+            <aside class="image-studio-panel image-studio-sidebar">
+              <div class="image-panel-heading"><h3>模板</h3></div>
+              <div id="image-template-list" class="image-template-list"></div>
+              <div class="image-panel-heading image-workflow-heading">
+                <h3>我的工作流</h3>
+                <button id="image-new-workflow" type="button" aria-label="新建工作流">＋</button>
+              </div>
+              <div id="image-workflow-list" class="image-workflow-list"></div>
+            </aside>
+
+            <section class="image-studio-main">
+              <div class="image-workflow-toolbar">
+                <input id="image-workflow-name" type="text" maxlength="256" value="未命名工作流" aria-label="工作流名称" />
+                <button id="image-save-workflow" class="primary-button" type="button">保存</button>
+                <button id="image-undo-workflow" type="button">撤销</button>
+                <button id="image-connect-node" type="button">连接节点</button>
+                <button id="image-delete-node" type="button">删除节点</button>
+                <button id="image-export-workflow" type="button">导出</button>
+                <label class="image-import-button">导入<input id="image-import-workflow" type="file" accept="application/json" hidden /></label>
+              </div>
+              <div class="image-node-palette" id="image-node-palette"></div>
+              <div id="image-workflow-canvas" class="image-workflow-canvas" aria-label="图片工作流画布">
+                <svg id="image-edge-layer" class="image-edge-layer" aria-hidden="true"></svg>
+                <div id="image-node-layer" class="image-node-layer"></div>
+              </div>
+              <div class="image-run-panel">
+                <label for="image-run-prompt">本次提示词</label>
+                <textarea id="image-run-prompt" rows="3" placeholder="描述产品、场景、构图、光线和需要表达的卖点"></textarea>
+                <div class="image-run-actions">
+                  <label class="image-upload-button">上传参考图<input id="image-reference-upload" type="file" accept="image/png,image/jpeg,image/webp" hidden /></label>
+                  <span id="image-reference-status">未选择参考图</span>
+                  <button id="image-run-workflow" class="primary-button" type="button">运行工作流</button>
+                </div>
+                <div id="image-run-status" class="image-run-status" aria-live="polite"></div>
+              </div>
+            </section>
+
+            <aside class="image-studio-panel image-properties-panel">
+              <div class="image-panel-heading"><h3>节点参数</h3></div>
+              <div id="image-node-properties" class="image-node-properties">
+                <p class="empty">选择节点后编辑参数</p>
+              </div>
+            </aside>
+          </div>
+
+          <div class="image-studio-results">
+            <section class="image-studio-panel">
+              <div class="image-panel-heading"><h3>任务记录</h3><button id="image-refresh-runs" type="button">刷新</button></div>
+              <div id="image-run-list" class="image-run-list"></div>
+            </section>
+            <section class="image-studio-panel">
+              <div class="image-panel-heading"><h3>素材库</h3><button id="image-refresh-assets" type="button">刷新</button></div>
+              <div id="image-asset-grid" class="image-asset-grid"></div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ========== 页面：Listing ========== -->
         <div class="page" id="page-listing-optimization" style="display:none">
           <section class="page-heading">
             <div>
               <span class="eyebrow">Listing Optimization</span>
-              <h2>Listing 优化</h2>
+              <h2>Listing</h2>
               <p>输入产品信息和目标关键词，一键生成标题、五点描述、详情页和后台 Search Terms</p>
             </div>
-            <span class="research-source-badge listing-source-badge">规则生成 + 本地质量评分</span>
+            <span class="research-source-badge listing-source-badge">DeepSeek 生成 + 本地质量评分</span>
           </section>
 
           <div class="listing-optimizer-grid">
@@ -664,12 +602,17 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 生成 Listing
               </button>
-              <div class="listing-template-row" aria-label="快速模板">
-                <button type="button" data-template="Portable handheld fan with USB rechargeable battery, low noise motor, 3 speeds, compact travel size, and desk-friendly stand.">便携风扇</button>
-                <button type="button" data-template="Kitchen storage organizer with durable material, space-saving structure, easy-clean surface, and multi-purpose daily use.">家居收纳</button>
-                <button type="button" data-template="Beauty accessory set with skin-friendly material, compact packaging, practical daily use, and gift-ready presentation.">美妆配件</button>
-              </div>
+              <button id="fill-dianxiaomi" class="listing-generate-button" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.62 0 3.14.43 4.45 1.18"/></svg>
+                生成并填写店小秘
+              </button>
               <div id="listing-status" class="listing-status" aria-live="polite"></div>
+              <div id="dianxiaomi-status" class="listing-status" aria-live="polite"></div>
+              <div id="dianxiaomi-controls" class="form-actions" style="display:none">
+                <button id="dianxiaomi-category-done" type="button">分类已选好，继续</button>
+                <button id="dianxiaomi-product-id-done" type="button">产品 ID 已填好，继续</button>
+              </div>
+              <pre id="dianxiaomi-json-preview" class="research-raw-json" style="display:none"></pre>
             </section>
 
             <section class="listing-card listing-output-card">
@@ -732,42 +675,63 @@
 
         <!-- ========== 页面：AI 助手 ========== -->
         <div class="page" id="page-chat" style="display:none">
-          <section class="chat-panel is-active" id="chat">
-            <div class="chat-header">
-              <div class="chat-title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <h2>AI 运营助手</h2>
-              </div>
-              <span class="chat-status" id="chat-status">在线</span>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-              <div class="chat-welcome">
-                <div class="welcome-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <div class="chat-workspace">
+            <section class="chat-panel is-active" id="chat">
+              <div class="chat-header">
+                <div class="chat-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                  <h2>AI 运营助手</h2>
                 </div>
-                <h3>欢迎使用 AI 运营助手</h3>
-                <p>我可以帮你查询运营数据、分析问题、提供建议</p>
-                <div class="quick-questions">
-                  <button class="quick-btn" data-question="查询最近7天销售最好的SKU">查询热销 SKU</button>
-                  <button class="quick-btn" data-question="查看库存告警">库存告警</button>
-                  <button class="quick-btn" data-question="分析广告ACOS表现">广告分析</button>
-                  <button class="quick-btn" data-question="查看今日待处理任务">待处理任务</button>
+                <span class="chat-status" id="chat-status">在线</span>
+              </div>
+              <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome">
+                  <div class="welcome-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                  </div>
+                  <h3>欢迎使用 AI 运营助手</h3>
+                  <p>我可以帮你查询运营数据、分析问题、提供建议</p>
+                  <div class="quick-questions">
+                    <button class="quick-btn" data-question="查询最近7天销售最好的SKU">查询热销 SKU</button>
+                    <button class="quick-btn" data-question="查看库存告警">库存告警</button>
+                    <button class="quick-btn" data-question="分析广告ACOS表现">广告分析</button>
+                    <button class="quick-btn" data-question="查看今日待处理任务">待处理任务</button>
+                  </div>
                 </div>
               </div>
-            </div>
-            <form class="chat-input-form" id="chat-form">
-              <div class="chat-input-wrapper">
-                <input type="text" id="chat-input" placeholder="输入你的问题..." autocomplete="off" />
-                <button type="submit" id="chat-send" class="chat-send-btn">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <form class="chat-input-form" id="chat-form">
+                <div class="chat-input-wrapper">
+                  <input type="text" id="chat-input" placeholder="输入你的问题..." autocomplete="off" />
+                  <button type="submit" id="chat-send" class="chat-send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <aside class="chat-history-panel" aria-label="会话历史">
+              <div class="chat-history-heading">
+                <div>
+                  <span>会话历史</span>
+                  <strong>Chat History</strong>
+                </div>
+                <button class="chat-new-session-btn" id="chat-new-session" type="button" title="新建会话" aria-label="新建会话">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                 </button>
               </div>
-            </form>
-          </section>
+              <div class="chat-history-list" id="chat-session-list">
+                <p class="chat-history-empty">暂无会话记录</p>
+              </div>
+              <button class="chat-history-refresh" id="chat-history-refresh" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                刷新历史
+              </button>
+            </aside>
+          </div>
         </div>
 
         <!-- ========== 页面：战场地图 ========== -->
-        <div class="page" id="page-battlefield" style="display:none">
+        <div class="page" id="removed-battlefield" style="display:none" aria-hidden="true">
           <section class="page-heading">
             <div>
               <span class="eyebrow">Battlefield Map</span>
@@ -858,7 +822,7 @@
         </div>
 
         <!-- ========== 页面：运营天眼 ========== -->
-        <div class="page" id="page-diagnosis" style="display:none">
+        <div class="page" id="removed-diagnosis" style="display:none" aria-hidden="true">
           <section class="page-heading">
             <div>
               <span class="eyebrow">Operations Eye</span>
@@ -996,9 +960,12 @@
             <div>
               <span class="eyebrow">Sales Monitor</span>
               <h2>销售监控</h2>
-              <p class="page-heading-desc">实时监控销量异常，AI Agent 自动诊断根因并给出建议</p>
+              <p class="page-heading-desc">基于领星 MCP 监控销售、退款与利润趋势</p>
             </div>
+            <span class="research-source-badge">领星 MCP</span>
           </section>
+
+          <div id="sales-source-status" class="ops-source-card"></div>
 
           <!-- 概览统计 -->
           <div class="sm-stats-grid">
@@ -1008,7 +975,7 @@
               </span>
               <div>
                 <strong id="sm-alert-count">--</strong>
-                <span>活跃告警</span>
+                <span>销售额</span>
               </div>
             </article>
             <article class="sm-stat-card">
@@ -1017,7 +984,7 @@
               </span>
               <div>
                 <strong id="sm-affected-skus">--</strong>
-                <span>受影响 SKU</span>
+                <span>销量</span>
               </div>
             </article>
             <article class="sm-stat-card">
@@ -1026,7 +993,7 @@
               </span>
               <div>
                 <strong id="sm-high-count">--</strong>
-                <span>高严重度</span>
+                <span>订单量</span>
               </div>
             </article>
           </div>
@@ -1034,7 +1001,7 @@
           <!-- 告警列表 -->
           <div class="panel" style="margin-top:20px">
             <div class="panel-header">
-              <h3>销量告警</h3>
+              <h3>销售趋势明细</h3>
               <button id="sm-refresh" class="secondary-button" type="button">刷新</button>
             </div>
             <div id="sm-alerts-list" class="sm-alerts-list">
@@ -1043,7 +1010,7 @@
           </div>
 
           <!-- SKU 详情面板 -->
-          <div class="panel" style="margin-top:20px">
+          <div class="panel" style="margin-top:20px;display:none">
             <h3>SKU 销量详情</h3>
             <div class="sm-sku-select-row">
               <select id="sm-sku-select" class="sm-sku-select">
@@ -1666,8 +1633,24 @@
             <div>
               <span class="eyebrow">Ads Analysis</span>
               <h2>广告分析</h2>
+              <p class="page-heading-desc">基于领星 MCP 分析广告效率并下钻到投放实体</p>
             </div>
+            <span class="research-source-badge">领星 MCP</span>
           </section>
+          <div id="ads-source-status" class="ops-source-card"></div>
+          <div id="ads-kpis" class="ops-kpi-grid"></div>
+          <div class="panel ops-data-panel">
+            <div class="panel-header">
+              <h3>广告实体明细</h3>
+              <select id="ads-entity-level">
+                <option value="campaign">Campaign</option>
+                <option value="ad_group">广告组</option>
+                <option value="target">投放</option>
+                <option value="search_term">搜索词</option>
+              </select>
+            </div>
+            <div id="ads-entities-table" class="ops-table-wrap"></div>
+          </div>
           <div class="panel">
             <h3>广告分析 Agent</h3>
             <p>深度分析广告投放效果，优化广告策略</p>
@@ -1709,8 +1692,16 @@
             <div>
               <span class="eyebrow">Inventory Agent</span>
               <h2>库存管家</h2>
+              <p class="page-heading-desc">基于领星 MCP 监控库存水位、断货风险与补货计划</p>
             </div>
+            <span class="research-source-badge">领星 MCP</span>
           </section>
+          <div id="inventory-source-status" class="ops-source-card"></div>
+          <div id="inventory-kpis" class="ops-kpi-grid"></div>
+          <div class="panel ops-data-panel">
+            <h3>库存与补货明细</h3>
+            <div id="inventory-table" class="ops-table-wrap"></div>
+          </div>
           <div class="panel">
             <h3>库存管家 Agent</h3>
             <p>智能库存管理，避免断货和积压</p>
@@ -1769,104 +1760,164 @@
           </div>
         </div>
 
-        <!-- ========== 页面：ERP 对接 ========== -->
+        <!-- ========== 页面：MCP 对接 ========== -->
         <div class="page" id="page-settings" style="display:none">
           <section class="page-heading">
             <div>
               <span class="eyebrow">Integration</span>
-              <h2>ERP 对接</h2>
+              <h2>MCP 对接</h2>
+              <p>管理数据源 MCP 服务</p>
             </div>
           </section>
 
-          <div class="settings-content">
-            <!-- 易仓ERP 设置 -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div class="settings-card-icon eccang-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                </div>
-                <div>
-                  <h3>易仓ERP</h3>
-                  <p>连接易仓ERP获取订单、库存、物流数据</p>
-                </div>
-                <span class="connection-status" id="eccang-status">未连接</span>
-              </div>
-              <form class="settings-form" id="eccang-form">
-                <div class="form-group">
-                  <label for="eccang-app-key">App Key</label>
-                  <input type="text" id="eccang-app-key" placeholder="输入易仓 App Key" />
-                </div>
-                <div class="form-group">
-                  <label for="eccang-app-secret">App Secret</label>
-                  <input type="password" id="eccang-app-secret" placeholder="输入易仓 App Secret" />
+          <div class="mcp-manager">
+            <div class="mcp-manager-toolbar">
+              <label class="mcp-search-control">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="mcp-search" type="search" placeholder="搜索 MCP 服务器" autocomplete="off" />
+              </label>
+              <button id="mcp-add-server" class="mcp-add-button" type="button">＋ 添加服务器</button>
+            </div>
+
+            <section class="mcp-server-section">
+              <div class="mcp-section-heading"><h3>服务器</h3><span id="mcp-server-count">0</span></div>
+              <div id="mcp-server-list" aria-live="polite"></div>
+
+              <form class="settings-form mcp-editor" id="mcp-form" hidden>
+                <div class="mcp-editor-heading">
+                  <div><h3 id="mcp-editor-title">添加服务器</h3><p>配置通用 MCP 能力映射；鉴权信息仅保存于服务端。</p></div>
+                  <button id="mcp-close-editor" class="mcp-close-button" type="button" aria-label="关闭配置">×</button>
                 </div>
                 <div class="form-group">
-                  <label for="eccang-base-url">API 地址</label>
-                  <input type="text" id="eccang-base-url" value="https://open.eccang.com" placeholder="易仓API地址" />
+                  <label for="mcp-name">服务名称</label>
+                  <input type="text" id="mcp-name" value="我的 MCP 服务" placeholder="例如：卖家精灵 MCP" />
+                </div>
+                <div class="form-group">
+                  <label for="mcp-url">MCP 地址 *</label>
+                  <input type="url" id="mcp-url" placeholder="https://example.com/mcp" required />
+                </div>
+                <div class="form-group">
+                  <label for="mcp-transport">传输方式</label>
+                  <select id="mcp-transport">
+                    <option value="streamable_http">Streamable HTTP（推荐）</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="mcp-priority">优先级（数字越小越优先）</label>
+                  <input type="number" id="mcp-priority" min="1" value="10" required />
+                </div>
+                <div class="form-group">
+                  <label for="mcp-capabilities">能力映射 JSON *</label>
+                  <textarea id="mcp-capabilities" rows="6" required placeholder='{"keyword_expand":{"tool":"keyword_research"}}'></textarea>
+                </div>
+                <label class="mcp-toggle" title="启用或停用 MCP 服务">
+                  <input id="mcp-enabled-editor" type="checkbox" checked />
+                  <span></span>
+                  <span class="sr-only">启用此数据源</span>
+                </label>
+                <div class="form-group">
+                  <label for="mcp-api-key">API Key（可选）</label>
+                  <input type="password" id="mcp-api-key" placeholder="留空则不使用 Bearer 鉴权" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                  <label for="mcp-headers">自定义请求头 JSON（可选）</label>
+                  <textarea id="mcp-headers" rows="3" placeholder="留空保留已保存的请求头"></textarea>
                 </div>
                 <div class="form-actions">
-                  <button type="button" class="test-btn" onclick="testEccangConnection()">
+                  <button type="button" class="test-btn" id="test-mcp-connection">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     测试连接
                   </button>
                   <button type="submit" class="save-btn">保存设置</button>
                 </div>
-                <div class="form-message" id="eccang-message"></div>
+                <div class="form-message" id="mcp-message"></div>
               </form>
-            </div>
-
-            <!-- 亚马逊设置 -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <div class="settings-card-icon amazon-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                </div>
-                <div>
-                  <h3>亚马逊店铺</h3>
-                  <p>连接亚马逊SP-API获取销售、广告数据</p>
-                </div>
-                <span class="connection-status" id="amazon-status">未连接</span>
-              </div>
-              <form class="settings-form" id="amazon-form">
-                <div class="form-group">
-                  <label for="amazon-seller-id">Seller ID</label>
-                  <input type="text" id="amazon-seller-id" placeholder="输入亚马逊 Seller ID" />
-                </div>
-                <div class="form-group">
-                  <label for="amazon-marketplace">站点</label>
-                  <select id="amazon-marketplace">
-                    <option value="US">美国站 (US)</option>
-                    <option value="UK">英国站 (UK)</option>
-                    <option value="DE">德国站 (DE)</option>
-                    <option value="FR">法国站 (FR)</option>
-                    <option value="JP">日本站 (JP)</option>
-                    <option value="CA">加拿大站 (CA)</option>
-                    <option value="AU">澳大利亚站 (AU)</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="amazon-refresh-token">Refresh Token</label>
-                  <input type="password" id="amazon-refresh-token" placeholder="输入 Refresh Token" />
-                </div>
-                <div class="form-group">
-                  <label for="amazon-client-id">Client ID (LWA)</label>
-                  <input type="text" id="amazon-client-id" placeholder="输入 LWA Client ID" />
-                </div>
-                <div class="form-group">
-                  <label for="amazon-client-secret">Client Secret (LWA)</label>
-                  <input type="password" id="amazon-client-secret" placeholder="输入 LWA Client Secret" />
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="save-btn">保存设置</button>
-                </div>
-                <div class="form-message" id="amazon-message"></div>
-              </form>
-            </div>
+            </section>
           </div>
         </div>
 
       </main>
     </div>
-    <script src="/static/app.js?v=canva-polish-20260608"></script>
+
+    <!-- 管理员面板（弹窗） -->
+    <div id="admin-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.3);align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:12px;width:560px;max-width:94vw;max-height:80vh;overflow-y:auto;padding:28px 32px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 style="font-size:18px;font-weight:700;color:rgba(0,0,0,0.88);">用户管理</h2>
+          <button onclick="document.getElementById('admin-modal').style.display='none'" style="border:none;background:none;font-size:20px;cursor:pointer;color:rgba(0,0,0,0.4);">&times;</button>
+        </div>
+
+        <!-- 添加用户 -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+          <input id="new-username" placeholder="用户名" style="flex:1;height:36px;padding:0 10px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;" />
+          <input id="new-password" type="password" placeholder="密码" style="flex:1;height:36px;padding:0 10px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;" />
+          <button onclick="createUser()" style="padding:0 18px;height:36px;background:#723CF9;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;">创建</button>
+        </div>
+        <div id="admin-msg" style="font-size:13px;min-height:20px;margin-bottom:12px;"></div>
+
+        <!-- 用户列表 -->
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <thead><tr style="text-align:left;border-bottom:1px solid #F0F0F0;">
+            <th style="padding:8px 4px;">用户名</th><th style="padding:8px 4px;">角色</th><th style="padding:8px 4px;">状态</th><th style="padding:8px 4px;">最后登录</th>
+          </tr></thead>
+          <tbody id="admin-user-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script src="/static/app.js?v=ai-chat-page-20260716-1"></script>
+    <script src="/static/selection-workbench.js?v=selection-keyword-pages-20260716-3"></script>
+    <script src="/static/image-studio.js?v=20260722-2"></script>
+    <script src="/static/image-canvas-editor.js?v=20260722-2"></script>
+    <script>
+    // 管理员面板
+    async function showAdminPanel() {
+      document.getElementById('admin-modal').style.display = 'flex';
+      await loadUsers();
+    }
+    async function loadUsers() {
+      var token = localStorage.getItem('access_token');
+      try {
+        var res = await fetch('/api/auth/admin/users', {headers:{'Authorization':'Bearer '+token}});
+        if(!res.ok){ document.getElementById('admin-user-list').innerHTML = '<tr><td colspan="4">加载失败</td></tr>'; return; }
+        var users = await res.json();
+        document.getElementById('admin-user-list').innerHTML = users.map(function(u){
+          var roleBadge = u.role==='admin'?'管理员':'用户';
+          var statusBadge = u.is_active?'<span style="color:#52C41A;">正常</span>':'<span style="color:#FF4D4F;">禁用</span>';
+          return '<tr style="border-bottom:1px solid #F0F0F0;">'+
+            '<td style="padding:8px 4px;">'+u.username+'</td>'+
+            '<td style="padding:8px 4px;">'+roleBadge+'</td>'+
+            '<td style="padding:8px 4px;">'+statusBadge+'</td>'+
+            '<td style="padding:8px 4px;color:rgba(0,0,0,0.4);">'+(u.last_login||'从未')+'</td>'+
+            '</tr>';
+        }).join('');
+      } catch(e) { document.getElementById('admin-user-list').innerHTML = '<tr><td colspan="4">加载失败</td></tr>'; }
+    }
+    async function createUser() {
+      var username = document.getElementById('new-username').value.trim();
+      var password = document.getElementById('new-password').value;
+      if(!username||!password){ document.getElementById('admin-msg').textContent='请填写用户名和密码'; document.getElementById('admin-msg').style.color='#FF4D4F'; return; }
+      var token = localStorage.getItem('access_token');
+      var res = await fetch('/api/auth/admin/users', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({username:username,password:password})
+      });
+      var data = await res.json();
+      if(res.ok){
+        document.getElementById('admin-msg').textContent='✅ '+data.message;
+        document.getElementById('admin-msg').style.color='#52C41A';
+        document.getElementById('new-username').value='';
+        document.getElementById('new-password').value='';
+        await loadUsers();
+      } else {
+        document.getElementById('admin-msg').textContent='❌ '+(data.detail||'创建失败');
+        document.getElementById('admin-msg').style.color='#FF4D4F';
+      }
+    }
+    // 点击遮罩关闭
+    document.getElementById('admin-modal').addEventListener('click', function(e){
+      if(e.target===this) this.style.display='none';
+    });
+    </script>
   </body>
 </html>
