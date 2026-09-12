@@ -42,6 +42,14 @@ class RAGEngine:
         logger.info("RAG 上传处理完成: %s，chunks=%s", filename, added)
         return {"filename": filename, "chunks": added}
 
+    def process_text(self, text: str, *, source: str, file_type: str = "web") -> dict:
+        """将已验证的文本直接写入现有 RAG 索引。"""
+        chunks = split_text(text, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+        if not chunks:
+            raise ValueError("没有可索引的文本内容")
+        metadata = [{"source": source, "chunk_index": index, "file_type": file_type} for index, _ in enumerate(chunks)]
+        return {"source": source, "chunks": self.vector_store.add(chunks, metadata)}
+
     def import_folder(self, folder_path: str) -> dict:
         """批量导入文件夹下的 Markdown、文本和 PDF 文档。"""
         folder = Path(folder_path)

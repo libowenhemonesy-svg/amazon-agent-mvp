@@ -25,6 +25,7 @@ build/
 *.pyd
 src-tauri/target/
 .tmp/
+.codex-work/
 .vs/
 data/
 vector_db/

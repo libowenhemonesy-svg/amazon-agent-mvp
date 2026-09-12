@@ -46,6 +46,27 @@ class SkuMaster(Base):
     enabled: Mapped[bool] = mapped_column(default=True)
 
 
+class ChromeProductCapture(Base):
+    """由本地 Chrome 扩展提交的 Amazon 商品页面快照。"""
+
+    __tablename__ = "chrome_product_captures"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    asin: Mapped[str] = mapped_column(String(20), index=True)
+    title: Mapped[str] = mapped_column(String(500), default="")
+    marketplace: Mapped[str] = mapped_column(String(32), default="US", index=True)
+    price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    review_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    url: Mapped[str] = mapped_column(String(1024), default="")
+    image_url: Mapped[str] = mapped_column(String(1024), default="")
+    bullets: Mapped[list] = mapped_column(JSON, default=list)
+    reviews: Mapped[list] = mapped_column(JSON, default=list)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC), index=True
+    )
+
+
 class SalesDaily(Base):
     __tablename__ = "sales_daily"
     __table_args__ = (UniqueConstraint("sku", "date", name="uq_sales_daily_sku_date"),)

@@ -9,6 +9,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from app.rag.config import ALLOWED_EXTENSIONS, UPLOAD_DIR
+from app.importers.wechat_article import article_to_markdown, fetch_wechat_article
 
 if TYPE_CHECKING:
     from app.rag.rag_engine import RAGEngine
@@ -24,6 +25,10 @@ class ChatRequest(BaseModel):
 
 class ImportFolderRequest(BaseModel):
     folder_path: str = Field(..., min_length=1)
+
+
+class ImportWechatRequest(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
 
 
 class Source(BaseModel):
@@ -91,6 +96,22 @@ async def import_folder(request: ImportFolderRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return {**result, "message": "import complete"}
+
+
+@router.post("/import-wechat")
+async def import_wechat(request: ImportWechatRequest) -> dict:
+    try:
+        article = fetch_wechat_article(request.url)
+        result = get_rag_engine().process_text(
+            article_to_markdown(article), source=article.url, file_type="wechat"
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="微信公众号文章导入失败") from exc
+    return {**result, "title": article.title, "message": "wechat article imported"}
 
 
 @router.post("/chat", response_model=ChatResponse)
