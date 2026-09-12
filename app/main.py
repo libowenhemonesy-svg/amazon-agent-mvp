@@ -29,6 +29,7 @@ from app.routes.analysis import (
 from app.auth.router import router as auth_router
 from app.routes.automation import router as automation_router
 from app.routes.chat import init_chat_graph, init_chat_memory_service, router as chat_router
+from app.routes.chrome import router as chrome_router
 from app.routes.demo import init_demo_config, router as demo_router
 from app.routes.dianxiaomi import init_dianxiaomi_agent, router as dianxiaomi_router
 from app.routes.jobs import init_jobs_config, router as jobs_router
@@ -91,6 +92,7 @@ def create_app(
     app.include_router(jobs_router)
     app.include_router(queries_router)
     app.include_router(chat_router)
+    app.include_router(chrome_router)
     app.include_router(analysis_router)
     app.include_router(automation_router)
     app.include_router(settings_router)

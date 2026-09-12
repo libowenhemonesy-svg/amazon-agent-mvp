@@ -260,6 +260,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
       Vault 同步
     </button>
+    <button class="menu-item" data-panel="wechat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01M12 10h.01M16 10h.01"/><path d="M21 11.5a8.38 8.38 0 01-1.9 5.4A8.5 8.5 0 1112 3a8.5 8.5 0 019 8.5z"/></svg>
+      公众号导入
+    </button>
   </nav>
   <div class="sider-foot">
     <span class="dot"></span> BGE-M3 · Qdrant · DeepSeek
@@ -335,6 +339,17 @@
     </div>
   </div>
 
+  <div class="content" id="panel-wechat" style="display:none;justify-content:center;align-items:center;">
+    <div class="panel-card">
+      <div class="icon-circle">✦</div>
+      <h3>导入微信公众号文章</h3>
+      <p>提交公开文章链接，正文将直接接入当前知识库索引。</p>
+      <input id="wechat-url" type="url" placeholder="https://mp.weixin.qq.com/s/..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--c-border);border-radius:8px;margin-bottom:12px;" />
+      <button class="btn btn-primary" id="btn-import-wechat">导入文章</button>
+      <div class="status-line" id="wechat-status"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -346,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupChat();
   setupUpload();
   setupVault();
+  setupWechat();
   document.getElementById('question-input').focus();
 });
 
@@ -357,14 +373,14 @@ function setupNav() {
       btn.classList.add('active');
       const p = btn.dataset.panel;
       document.getElementById('panel-title').textContent = btn.textContent.trim();
-      ['chat','upload','vault'].forEach(id => {
+      ['chat','upload','vault','wechat'].forEach(id => {
         document.getElementById('panel-' + id).style.display = (id === p) ? '' : 'none';
       });
       if (p === 'chat') {
         document.getElementById('panel-chat').style.display = 'flex';
         document.getElementById('question-input').focus();
       }
-      if (p === 'upload' || p === 'vault') {
+      if (p === 'upload' || p === 'vault' || p === 'wechat') {
         const panel = document.getElementById('panel-' + p);
         panel.style.display = 'flex';
         panel.style.justifyContent = 'center';
@@ -508,6 +524,24 @@ function setupVault() {
       }
     } catch(e) { s.textContent = '❌ 网络错误'; s.className = 'status-line err'; }
     btn.disabled = false; btn.textContent = '同步知识库';
+  });
+}
+
+function setupWechat() {
+  document.getElementById('btn-import-wechat').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-import-wechat');
+    const input = document.getElementById('wechat-url');
+    const s = document.getElementById('wechat-status');
+    const url = input.value.trim();
+    if (!url) { s.textContent = '请输入文章链接'; s.className = 'status-line err'; return; }
+    btn.disabled = true; btn.textContent = '导入中…'; s.textContent = '正在读取公开文章并写入索引…'; s.className = 'status-line';
+    try {
+      const r = await fetch(API + '/import-wechat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url})});
+      const d = await r.json();
+      if (!r.ok) { s.textContent = '❌ ' + (d.detail || '导入失败'); s.className = 'status-line err'; }
+      else { s.textContent = '✅ ' + d.title + ' · ' + d.chunks + ' 个文本块'; s.className = 'status-line ok'; toast('文章已导入'); }
+    } catch(e) { s.textContent = '❌ 网络错误'; s.className = 'status-line err'; }
+    btn.disabled = false; btn.textContent = '导入文章';
   });
 }
 

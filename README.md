@@ -31,6 +31,8 @@
 - **易仓 ERP** — 对接易仓 API，获取订单、库存、物流数据
 - **亚马逊 SP-API** — 连接亚马逊店铺，获取销售、广告数据
 - **飞书** — 同步数据到飞书多维表格
+- **Chrome 商品采集** — 采集 Amazon 商品页公开字段，写入本地运营数据库
+- **公众号知识导入** — 将用户提交的公开公众号文章写入既有 RAG 知识库
 
 ## 技术栈
 
@@ -94,6 +96,12 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
 
 访问 http://localhost:8010
 
+### 可选：导入跨境运营知识
+
+打开 `http://localhost:8010/rag`，可上传文档、同步本地 Vault，或在“公众号导入”中提交公开文章链接。文章仅在你主动提交后读取；导入失败不会生成虚构知识库内容。
+
+`extensions/amazon-product-capture/` 包含 Chrome 扩展。按其中的 [安装说明](extensions/amazon-product-capture/README.md)加载后，可将 Amazon 美国站商品页的公开字段发送到 `/api/chrome/submit`。生产环境请先执行 `alembic upgrade head`，创建采集记录表。
+
 ## 部署指南
 
 ### Render（免费）
@@ -122,6 +130,7 @@ all-round-operations-agent/
 │   ├── rules/           # 规则引擎
 │   └── static/          # 前端文件
 ├── sample_data/         # 示例数据
+├── extensions/          # 浏览器扩展（Amazon 商品采集）
 ├── tests/               # 测试用例
 ├── requirements.txt     # Python 依赖
 └── render.yaml          # Render 部署配置

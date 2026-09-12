@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Amazon Agent 商品采集",
+  "version": "1.0.0",
+  "description": "从当前 Amazon 商品页提取公开页面信息并发送到 Amazon Agent。",
+  "action": {"default_popup": "popup.html", "default_title": "发送商品到 Amazon Agent"},
+  "permissions": ["activeTab"],
+  "host_permissions": ["https://www.amazon.com/*", "http://localhost:8010/*"],
+  "content_scripts": [{
+    "matches": ["https://www.amazon.com/*"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }]
+}
